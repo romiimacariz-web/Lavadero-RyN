@@ -1,0 +1,6 @@
+{
+  "name": "Lavadero RyN",
+  "description": "Aplicación de gestión para lavaderos de autos: clientes, vehículos, reservas, servicios, cajas, reportes e integración con WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
