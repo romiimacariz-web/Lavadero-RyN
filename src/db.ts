@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DatabaseState, Cliente, Vehiculo, Reserva, ServicioRealizado, Gasto, UserRole } from './types';
+import { DatabaseState, Cliente, Vehiculo, Reserva, ServicioRealizado, Gasto, UserRole, CatalogoServicio } from './types';
 
 // Seed data to make the app incredibly visual and functional upfront!
 const initialClientes: Cliente[] = [
@@ -299,6 +299,14 @@ const safeStorage = {
   }
 };
 
+const initialCatalogo: CatalogoServicio[] = [
+  { id: 'cat-1', tipo: 'Lavado básico', precio: 8500, descripcion: 'Lavado exterior rápido, aspirado express.' },
+  { id: 'cat-2', tipo: 'Lavado premium', precio: 15400, descripcion: 'Tratamiento completo interior y exterior profunda + encerado.' },
+  { id: 'cat-3', tipo: 'Lavado con cera', precio: 11000, descripcion: 'Lavado exterior de alta espuma con abrillantado de cera acrílica.' },
+  { id: 'cat-4', tipo: 'Lavado de motor', precio: 12000, descripcion: 'Remoción de grasas del motor con vapor y desengrasante seguro.' },
+  { id: 'cat-5', tipo: 'Aspirado', precio: 6000, descripcion: 'Aspirado profundo de tapizados, alfombras y baúl.' },
+];
+
 export function getInitialState(): DatabaseState {
   const localData = safeStorage.getItem(STORAGE_KEY);
   if (localData) {
@@ -306,6 +314,15 @@ export function getInitialState(): DatabaseState {
       const parsed = JSON.parse(localData);
       // Validate structure roughly
       if (parsed.clientes && parsed.vehiculos && parsed.reservas && parsed.servicios && parsed.gastos) {
+        // Safe check / upgrade for preexisting storage lacking the catalogo
+        if (!parsed.serviciosCatalogo) {
+          parsed.serviciosCatalogo = initialCatalogo;
+          saveState(parsed);
+        }
+        if (!parsed.adminPassword) {
+          parsed.adminPassword = 'ryn123';
+          saveState(parsed);
+        }
         return parsed;
       }
     } catch (e) {
@@ -319,8 +336,10 @@ export function getInitialState(): DatabaseState {
     reservas: initialReservas,
     servicios: initialServicios,
     gastos: initialGastos,
+    serviciosCatalogo: initialCatalogo,
     currentRole: 'Administrador',
-    currentUserId: 'admin-1'
+    currentUserId: 'admin-1',
+    adminPassword: 'ryn123'
   };
 
   safeStorage.setItem(STORAGE_KEY, JSON.stringify(newState));

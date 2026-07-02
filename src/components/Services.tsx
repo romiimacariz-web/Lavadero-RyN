@@ -34,15 +34,6 @@ interface ServicesProps {
   onTriggerWhatsApp: (phone: string, text: string) => void;
 }
 
-const SERVICE_PRESETS = [
-  { tipo: 'Lavado básico', precio: 8500 },
-  { tipo: 'Lavado premium', precio: 15400 },
-  { tipo: 'Lavado con cera', precio: 11000 },
-  { tipo: 'Lavado de motor', precio: 12000 },
-  { tipo: 'Aspirado', precio: 6000 },
-  { tipo: 'Otro', precio: 9000 },
-];
-
 export default function Services({ 
   state, 
   quickServiceReserva,
@@ -58,8 +49,8 @@ export default function Services({
   // Form states
   const [clienteId, setClienteId] = useState('');
   const [vehiculoMatricula, setVehiculoMatricula] = useState('');
-  const [tipo, setTipo] = useState('Lavado básico');
-  const [precio, setPrecio] = useState(8500);
+  const [tipo, setTipo] = useState('');
+  const [precio, setPrecio] = useState(0);
   const [formaPago, setFormaPago] = useState<FormaPago>('Efectivo');
   const [observaciones, setObservaciones] = useState('');
   
@@ -71,12 +62,20 @@ export default function Services({
   const [viewingBeforeAfter, setViewingBeforeAfter] = useState<ServicioRealizado | null>(null);
   const [viewModeCompare, setViewModeCompare] = useState<'Antes' | 'Después'>('Después');
 
+  // Initialize defaults based on the first item in the dynamic catalog
+  useEffect(() => {
+    if (!tipo && state.serviciosCatalogo && state.serviciosCatalogo.length > 0) {
+      setTipo(state.serviciosCatalogo[0].tipo);
+      setPrecio(state.serviciosCatalogo[0].precio);
+    }
+  }, [state.serviciosCatalogo, tipo]);
+
   // Handle auto preset change
   const handlePresetChange = (tipoSelected: string) => {
     setTipo(tipoSelected);
-    const preset = SERVICE_PRESETS.find(p => p.tipo === tipoSelected);
-    if (preset) {
-      setPrecio(preset.precio);
+    const service = state.serviciosCatalogo.find(p => p.tipo === tipoSelected);
+    if (service) {
+      setPrecio(service.precio);
     }
   };
 
@@ -86,13 +85,13 @@ export default function Services({
       setClienteId(quickServiceReserva.clienteId);
       setVehiculoMatricula(quickServiceReserva.vehiculoMatricula);
       setTipo(quickServiceReserva.servicioSol);
-      const preset = SERVICE_PRESETS.find(p => p.tipo === quickServiceReserva.servicioSol);
-      if (preset) {
-        setPrecio(preset.precio);
+      const service = state.serviciosCatalogo.find(p => p.tipo === quickServiceReserva.servicioSol);
+      if (service) {
+        setPrecio(service.precio);
       }
       setIsAdding(true);
     }
-  }, [quickServiceReserva]);
+  }, [quickServiceReserva, state.serviciosCatalogo]);
 
   const handleClienteChange = (cid: string) => {
     setClienteId(cid);
@@ -226,9 +225,10 @@ export default function Services({
                     onChange={(e) => handlePresetChange(e.target.value)}
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none"
                   >
-                    {SERVICE_PRESETS.map(p => (
-                      <option key={p.tipo} value={p.tipo}>{p.tipo}</option>
+                    {state.serviciosCatalogo.map(p => (
+                      <option key={p.id} value={p.tipo}>{p.tipo} (${p.precio.toLocaleString('es-AR')})</option>
                     ))}
+                    <option value="Otro">Otro / Personalizado</option>
                   </select>
                 </div>
 

@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { getInitialState, saveState } from './db';
-import { DatabaseState, Cliente, Vehiculo, Reserva, ServicioRealizado, Gasto, UserRole, ReservaEstado, FormaPago } from './types';
+import { DatabaseState, Cliente, Vehiculo, Reserva, ServicioRealizado, Gasto, UserRole, ReservaEstado, FormaPago, CatalogoServicio } from './types';
 
 // Components
 import Dashboard from './components/Dashboard';
@@ -16,6 +16,7 @@ import Services from './components/Services';
 import Caja from './components/Caja';
 import Reports from './components/Reports';
 import SelfService from './components/SelfService';
+import Catalogo from './components/Catalogo';
 
 // Icons
 import { 
@@ -34,7 +35,9 @@ import {
   Sparkles,
   RefreshCw,
   LogOut,
-  UserCheck
+  UserCheck,
+  ClipboardList,
+  Lock
 } from 'lucide-react';
 import { getWhatsAppHref, getConfirmationMessage, getVehicleReadyMessage, getInactiveGreetingMessage } from './utils/whatsapp';
 
@@ -57,6 +60,11 @@ export default function App() {
   });
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Password prompt states for transitioning to Admin
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
+
   // Persistence handler
   const updateStateAndPersist = (updatedFields: Partial<DatabaseState>) => {
     const newState = { ...dbState, ...updatedFields };
@@ -66,11 +74,22 @@ export default function App() {
 
   // Switch User Profile Roles (Admin vs. Empleado)
   const handleToggleRole = (role: UserRole) => {
-    // If we transition to Empleado and are on reports or cash, reset to Inicio
-    if (role === 'Empleado' && (activeTab === 'Caja' || activeTab === 'Reportes')) {
+    if (role === 'Administrador' && dbState.currentRole !== 'Administrador') {
+      setAdminPasswordInput('');
+      setAdminPasswordError(null);
+      setShowAdminPasswordModal(true);
+      return;
+    }
+
+    // If we transition to Empleado and are on reports, cash or prices, reset to Inicio
+    if (role === 'Empleado' && (activeTab === 'Caja' || activeTab === 'Reportes' || activeTab === 'Precios')) {
       setActiveTab('Inicio');
     }
     updateStateAndPersist({ currentRole: role });
+  };
+
+  const handleUpdatePassword = (newPassword: string) => {
+    updateStateAndPersist({ adminPassword: newPassword });
   };
 
   // CLIENTS ACTIONS
@@ -163,6 +182,11 @@ export default function App() {
   const handleDeleteServicio = (id: string) => {
     const filtered = dbState.servicios.filter(s => s.id !== id);
     updateStateAndPersist({ servicios: filtered });
+  };
+
+  // SERVICES CATALOG ACTIONS
+  const handleUpdateCatalogo = (newCatalogo: CatalogoServicio[]) => {
+    updateStateAndPersist({ serviciosCatalogo: newCatalogo });
   };
 
   // EXPENSES GASTOS ACTIONS
@@ -314,6 +338,7 @@ export default function App() {
     { label: 'Vehículos', icon: Car },
     { label: 'Agenda', icon: CalendarDays },
     { label: 'Servicios', icon: CheckCircle2 },
+    { label: 'Precios', icon: ClipboardList },
     ...(dbState.currentRole === 'Administrador' ? [
       { label: 'Caja', icon: DollarSign },
       { label: 'Reportes', icon: BarChart4 }
@@ -504,6 +529,14 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'Precios' && (
+          <Catalogo 
+            state={dbState}
+            onUpdateCatalogo={handleUpdateCatalogo}
+            onUpdatePassword={handleUpdatePassword}
+          />
+        )}
+
         {activeTab === 'Caja' && dbState.currentRole === 'Administrador' && (
           <Caja 
             state={dbState}
@@ -597,6 +630,81 @@ export default function App() {
             <p className="text-[10px] text-center text-gray-500">
               * El botón "Enviar Directo" abrirá una nueva pestaña de chat en WhatsApp Web o en tu aplicación móvil con el mensaje pre-cargado.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para verificar contraseña de administración */}
+      {showAdminPasswordModal && (
+        <div id="admin-password-modal" className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-5 shadow-2xl animate-scaleUp">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-display font-black text-white">Modo Administrador</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Ingrese la contraseña de seguridad para acceder al panel de administración del lavadero.
+              </p>
+            </div>
+
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const currentPassword = dbState.adminPassword || 'ryn123';
+                if (adminPasswordInput === currentPassword) {
+                  // Password matches! Toggle role and close modal
+                  updateStateAndPersist({ currentRole: 'Administrador' });
+                  setShowAdminPasswordModal(false);
+                  setAdminPasswordInput('');
+                  setAdminPasswordError(null);
+                } else {
+                  setAdminPasswordError('Contraseña incorrecta. Por favor intente de nuevo.');
+                }
+              }} 
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={adminPasswordInput}
+                  onChange={(e) => {
+                    setAdminPasswordInput(e.target.value);
+                    setAdminPasswordError(null);
+                  }}
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-4 py-2.5 text-center text-white font-mono text-sm tracking-widest focus:outline-none focus:border-brand-red"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {adminPasswordError && (
+                <div className="p-3 bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs font-bold rounded-xl text-center">
+                  {adminPasswordError}
+                </div>
+              )}
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminPasswordModal(false);
+                    setAdminPasswordInput('');
+                    setAdminPasswordError(null);
+                  }}
+                  className="flex-1 bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs py-3 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl transition-all uppercase tracking-wider"
+                >
+                  Ingresar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

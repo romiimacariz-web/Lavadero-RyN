@@ -63,12 +63,21 @@ export interface Gasto {
   monto: number;
 }
 
+export interface CatalogoServicio {
+  id: string;
+  tipo: string;
+  precio: number;
+  descripcion?: string;
+}
+
 export interface DatabaseState {
   clientes: Cliente[];
   vehiculos: Vehiculo[];
   reservas: Reserva[];
   servicios: ServicioRealizado[];
   gastos: Gasto[];
+  serviciosCatalogo: CatalogoServicio[];
   currentRole: UserRole;
   currentUserId: string;
+  adminPassword?: string;
 }

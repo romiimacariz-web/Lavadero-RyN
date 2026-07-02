@@ -42,14 +42,6 @@ interface SelfServiceProps {
   onExit: () => void;
 }
 
-const SERVICE_OPTIONS = [
-  { tipo: 'Lavado básico', precio: 8500, desc: 'Lavado exterior rápido, aspirado express.' },
-  { tipo: 'Lavado premium', precio: 15400, desc: 'Tratamiento completo interior y exterior profunda + encerado.' },
-  { tipo: 'Lavado con cera', precio: 11000, desc: 'Lavado exterior de alta espuma con abrillantado de cera acrílica.' },
-  { tipo: 'Lavado de motor', precio: 12000, desc: 'Remoción de grasas del motor con vapor y desengrasante seguro.' },
-  { tipo: 'Aspirado', precio: 6000, desc: 'Aspirado profundo de tapizados, alfombras y baúl.' },
-];
-
 const TIME_SLOTS = [
   '08:00', '09:00', '10:00', '11:00', '12:00',
   '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
@@ -80,10 +72,17 @@ export default function SelfService({
   const [anio, setAnio] = useState<number>(new Date().getFullYear());
 
   // STEP 3 Form: Service & Slot
-  const [servicioSol, setServicioSol] = useState('Lavado básico');
+  const [servicioSol, setServicioSol] = useState('');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [hora, setHora] = useState('');
   const [observaciones, setObservaciones] = useState('');
+
+  // Auto-default dynamic package choice when catalog loads or matches
+  useEffect(() => {
+    if (!servicioSol && state.serviciosCatalogo && state.serviciosCatalogo.length > 0) {
+      setServicioSol(state.serviciosCatalogo[0].tipo);
+    }
+  }, [state.serviciosCatalogo, servicioSol]);
 
   // Look up existing customer/car when license plate is entered to auto-complete
   const handleMatriculaBlur = () => {
@@ -389,9 +388,9 @@ export default function SelfService({
               <div className="space-y-2">
                 <label className="text-xs font-mono text-gray-400 uppercase tracking-widest block">Seleccione el Servicio:</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {SERVICE_OPTIONS.map(opt => (
+                  {state.serviciosCatalogo.map(opt => (
                     <label 
-                      key={opt.tipo} 
+                      key={opt.id} 
                       onClick={() => setServicioSol(opt.tipo)}
                       className={`p-3.5 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
                         servicioSol === opt.tipo 
@@ -403,7 +402,7 @@ export default function SelfService({
                         <span className="font-bold text-sm text-white capitalize">{opt.tipo}</span>
                         <span className="font-mono text-brand-success font-extrabold text-sm">${opt.precio.toLocaleString('es-AR')}</span>
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-1 max-w-xs">{opt.desc}</p>
+                      <p className="text-[10px] text-gray-400 mt-1 max-w-xs">{opt.descripcion || 'Sin descripción adicional.'}</p>
                     </label>
                   ))}
                 </div>

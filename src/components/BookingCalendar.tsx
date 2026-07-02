@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DatabaseState, Reserva, Cliente, Vehiculo, ReservaEstado } from '../types';
 import { 
   Calendar, 
@@ -54,8 +54,15 @@ export default function BookingCalendar({
   const [vehiculoMatricula, setVehiculoMatricula] = useState('');
   const [fecha, setFecha] = useState(selectedDate);
   const [hora, setHora] = useState('09:00');
-  const [servicioSol, setServicioSol] = useState('Lavado básico');
+  const [servicioSol, setServicioSol] = useState('');
   const [observaciones, setObservaciones] = useState('');
+
+  // Default dynamic package choice when catalog loads
+  useEffect(() => {
+    if (!servicioSol && state.serviciosCatalogo && state.serviciosCatalogo.length > 0) {
+      setServicioSol(state.serviciosCatalogo[0].tipo);
+    }
+  }, [state.serviciosCatalogo, servicioSol]);
 
   // Fetch client or vehicle details
   const getCliente = (id: string) => state.clientes.find(c => c.id === id);
@@ -321,12 +328,10 @@ export default function BookingCalendar({
                   onChange={(e) => setServicioSol(e.target.value)}
                   className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none"
                 >
-                  <option value="Lavado básico">Lavado básico</option>
-                  <option value="Lavado premium">Lavado premium</option>
-                  <option value="Lavado con cera">Lavado con cera</option>
-                  <option value="Lavado de motor">Lavado de motor</option>
-                  <option value="Aspirado">Aspirado</option>
-                  <option value="Otro">Otro</option>
+                  {state.serviciosCatalogo.map(p => (
+                    <option key={p.id} value={p.tipo}>{p.tipo} (${p.precio})</option>
+                  ))}
+                  <option value="Otro">Otro / Personalizado</option>
                 </select>
               </div>
 
