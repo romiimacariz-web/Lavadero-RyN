@@ -64,6 +64,20 @@ import { getWhatsAppHref, getConfirmationMessage, getVehicleReadyMessage, getIna
 export default function App() {
   const [dbState, setDbState] = useState<DatabaseState>(getInitialState());
   const [activeTab, setActiveTab] = useState<string>('Inicio');
+  const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
+
+  // Router listener for public URL routing
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
   
   // Quick service trigger from dashboard
   const [quickServiceReserva, setQuickServiceReserva] = useState<Reserva | null>(null);
@@ -497,7 +511,9 @@ export default function App() {
     ] : [])
   ];
 
-  if (dbState.currentRole === 'Autoservicio') {
+  const isPublicAutoservicio = currentPath === '/autoservicio' || window.location.hash === '#/autoservicio';
+
+  if (isPublicAutoservicio || dbState.currentRole === 'Autoservicio') {
     return (
       <div id="lavadero-ryn-app" className="min-h-screen bg-brand-bg text-white p-4 sm:p-6 md:p-8 flex flex-col justify-center relative select-none">
         <SelfService 
@@ -505,6 +521,7 @@ export default function App() {
           onAddBooking={handleAddBookingSelfService}
           onTriggerWhatsApp={handleTriggerWhatsApp}
           onExit={() => handleToggleRole('Administrador')}
+          isPublicRoute={isPublicAutoservicio}
         />
 
         {/* WhatsApp Message Drafting dialog drawer */}

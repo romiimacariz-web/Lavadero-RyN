@@ -40,6 +40,7 @@ interface SelfServiceProps {
   ) => Reserva;
   onTriggerWhatsApp: (phone: string, text: string) => void;
   onExit: () => void;
+  isPublicRoute?: boolean;
 }
 
 const TIME_SLOTS = [
@@ -51,7 +52,8 @@ export default function SelfService({
   state, 
   onAddBooking, 
   onTriggerWhatsApp, 
-  onExit 
+  onExit,
+  isPublicRoute = false
 }: SelfServiceProps) {
   const [step, setStep] = useState<number>(1);
   const [successBooking, setSuccessBooking] = useState<Reserva | null>(null);
@@ -679,42 +681,77 @@ export default function SelfService({
       </div>
 
       {/* Hidden backdoor logout panel to exit customer self-service mode for employees */}
-      <div className="flex justify-center pt-4">
-        <button
-          onClick={() => {
-            setExitPassword('');
-            setExitError(null);
-            setShowExitModal(true);
-          }}
-          className="text-[10px] text-gray-600 hover:text-gray-400 underline transition duration-200 uppercase tracking-widest font-mono py-1.5 px-3 rounded-full hover:bg-brand-card-light"
-        >
-          &bull; Salir del Modo Autoservicio &bull;
-        </button>
-      </div>
+      {!isPublicRoute && (
+        <>
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={() => {
+                setExitPassword('');
+                setExitError(null);
+                setShowExitModal(true);
+              }}
+              className="text-[10px] text-gray-600 hover:text-gray-400 underline transition duration-200 uppercase tracking-widest font-mono py-1.5 px-3 rounded-full hover:bg-brand-card-light"
+            >
+              &bull; Salir del Modo Autoservicio &bull;
+            </button>
+          </div>
 
-      {/* Dynamic secure administration exit dialog */}
-      {showExitModal && (
-        <div id="self-service-exit-modal" className="fixed inset-0 z-55 bg-black/90 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp text-left">
-            <div className="space-y-2">
-              <h3 className="text-lg font-display font-black text-white">Panel de Seguridad</h3>
-              <p className="text-xs text-gray-400">
-                Ingrese la clave de administrador para salir del modo de autoservicio y regresar al panel de gestión principal:
-              </p>
-            </div>
+          {/* Dynamic secure administration exit dialog */}
+          {showExitModal && (
+            <div id="self-service-exit-modal" className="fixed inset-0 z-55 bg-black/90 flex items-center justify-center p-4">
+              <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp text-left">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-display font-black text-white">Panel de Seguridad</h3>
+                  <p className="text-xs text-gray-400">
+                    Ingrese la clave de administrador para salir del modo de autoservicio y regresar al panel de gestión principal:
+                  </p>
+                </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-mono tracking-wider text-gray-500">Clave de Seguridad (Pista: ryn123)</label>
-                <input
-                  type="password"
-                  value={exitPassword}
-                  onChange={(e) => {
-                    setExitPassword(e.target.value);
-                    setExitError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-mono tracking-wider text-gray-500">Clave de Seguridad (Pista: ryn123)</label>
+                    <input
+                      type="password"
+                      value={exitPassword}
+                      onChange={(e) => {
+                        setExitPassword(e.target.value);
+                        setExitError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const correctPassword = state.adminPassword || 'ryn123';
+                          if (exitPassword === correctPassword) {
+                            onExit();
+                            setShowExitModal(false);
+                          } else {
+                            setExitError('Clave incorrecta. Modo Autoservicio permanece activo.');
+                          }
+                        }
+                      }}
+                      className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:ring-1 focus:ring-brand-red"
+                      placeholder="••••••••"
+                      autoFocus
+                    />
+                  </div>
+
+                  {exitError && (
+                    <div className="p-3 bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs rounded-xl font-semibold">
+                      {exitError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowExitModal(false)}
+                    className="flex-1 bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs py-3 rounded-xl transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       const correctPassword = state.adminPassword || 'ryn123';
                       if (exitPassword === correctPassword) {
                         onExit();
@@ -722,47 +759,16 @@ export default function SelfService({
                       } else {
                         setExitError('Clave incorrecta. Modo Autoservicio permanece activo.');
                       }
-                    }
-                  }}
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:ring-1 focus:ring-brand-red"
-                  placeholder="••••••••"
-                  autoFocus
-                />
-              </div>
-
-              {exitError && (
-                <div className="p-3 bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs rounded-xl font-semibold">
-                  {exitError}
+                    }}
+                    className="flex-1 bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl transition"
+                  >
+                    Ingresar Panel
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
-
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowExitModal(false)}
-                className="flex-1 bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs py-3 rounded-xl transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const correctPassword = state.adminPassword || 'ryn123';
-                  if (exitPassword === correctPassword) {
-                    onExit();
-                    setShowExitModal(false);
-                  } else {
-                    setExitError('Clave incorrecta. Modo Autoservicio permanece activo.');
-                  }
-                }}
-                className="flex-1 bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl transition"
-              >
-                Ingresar Panel
-              </button>
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
