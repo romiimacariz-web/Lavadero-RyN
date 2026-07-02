@@ -323,6 +323,10 @@ export function getInitialState(): DatabaseState {
           parsed.adminPassword = 'ryn123';
           saveState(parsed);
         }
+        if (!parsed.businessWhatsapp) {
+          parsed.businessWhatsapp = '5491123456789';
+          saveState(parsed);
+        }
         return parsed;
       }
     } catch (e) {
@@ -339,7 +343,8 @@ export function getInitialState(): DatabaseState {
     serviciosCatalogo: initialCatalogo,
     currentRole: 'Administrador',
     currentUserId: 'admin-1',
-    adminPassword: 'ryn123'
+    adminPassword: 'ryn123',
+    businessWhatsapp: '5491123456789'
   };
 
   safeStorage.setItem(STORAGE_KEY, JSON.stringify(newState));

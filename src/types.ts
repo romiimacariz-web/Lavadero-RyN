@@ -80,4 +80,5 @@ export interface DatabaseState {
   currentRole: UserRole;
   currentUserId: string;
   adminPassword?: string;
+  businessWhatsapp?: string;
 }

@@ -92,6 +92,10 @@ export default function App() {
     updateStateAndPersist({ adminPassword: newPassword });
   };
 
+  const handleUpdateBusinessWhatsapp = (newWhatsapp: string) => {
+    updateStateAndPersist({ businessWhatsapp: newWhatsapp });
+  };
+
   // CLIENTS ACTIONS
   const handleAddCliente = (cliData: Omit<Cliente, 'id' | 'fechaRegistro'>) => {
     const newId = `cli-${Date.now()}`;
@@ -534,6 +538,7 @@ export default function App() {
             state={dbState}
             onUpdateCatalogo={handleUpdateCatalogo}
             onUpdatePassword={handleUpdatePassword}
+            onUpdateBusinessWhatsapp={handleUpdateBusinessWhatsapp}
           />
         )}
 

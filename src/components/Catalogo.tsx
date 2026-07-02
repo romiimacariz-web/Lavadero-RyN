@@ -27,9 +27,10 @@ interface CatalogoProps {
   state: DatabaseState;
   onUpdateCatalogo: (catalogo: CatalogoServicio[]) => void;
   onUpdatePassword: (password: string) => void;
+  onUpdateBusinessWhatsapp: (whatsapp: string) => void;
 }
 
-export default function Catalogo({ state, onUpdateCatalogo, onUpdatePassword }: CatalogoProps) {
+export default function Catalogo({ state, onUpdateCatalogo, onUpdatePassword, onUpdateBusinessWhatsapp }: CatalogoProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -56,6 +57,23 @@ export default function Catalogo({ state, onUpdateCatalogo, onUpdatePassword }: 
     onUpdatePassword(newPassword.trim());
     setPasswordFeedback('¡Contraseña de administración guardada correctamente!');
     setTimeout(() => setPasswordFeedback(null), 3000);
+  };
+
+  // WhatsApp settings states
+  const [bWhatsapp, setBWhatsapp] = useState(state.businessWhatsapp || '5491123456789');
+  const [whatsappFeedback, setWhatsappFeedback] = useState<string | null>(null);
+
+  const handleSaveWhatsapp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bWhatsapp.trim()) {
+      setWhatsappFeedback('El número de WhatsApp no puede estar vacío.');
+      return;
+    }
+    // Clean spaces, hyphens, plus signs
+    const cleaned = bWhatsapp.replace(/[+\s\-()]/g, '');
+    onUpdateBusinessWhatsapp(cleaned);
+    setWhatsappFeedback('¡Número de WhatsApp de la empresa guardado correctamente!');
+    setTimeout(() => setWhatsappFeedback(null), 3000);
   };
 
   const handleAdd = (e: React.FormEvent) => {
@@ -365,6 +383,57 @@ export default function Catalogo({ state, onUpdateCatalogo, onUpdatePassword }: 
                   : 'bg-brand-red/10 border border-brand-red/30 text-brand-red'
               }`}>
                 {passwordFeedback}
+              </div>
+            )}
+          </div>
+
+          {/* Sección de WhatsApp de la Empresa */}
+          <div className="bg-brand-card border border-gray-800/80 rounded-2xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-brand-success/10 border border-brand-success/25 text-brand-success rounded-xl shrink-0">
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <h3 className="text-base font-display font-black text-white">WhatsApp del Lavadero</h3>
+                <p className="text-xs text-gray-400">
+                  Configura el número de WhatsApp oficial de Lavadero RyN. Este número se utilizará para que los clientes puedan enviar comprobantes de reservas y contactarse directamente.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveWhatsapp} className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Número de WhatsApp (con código de país sin el +, ej: 5493412345678)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-gray-500 font-bold">+</span>
+                  <input
+                    type="text"
+                    required
+                    value={bWhatsapp}
+                    onChange={(e) => {
+                      setBWhatsapp(e.target.value);
+                      setWhatsappFeedback(null);
+                    }}
+                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl pl-8 pr-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-brand-success"
+                    placeholder="Ej: 5491123456789"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="bg-brand-success hover:bg-green-700 text-white font-black text-xs py-3 px-5 rounded-xl transition duration-200 uppercase tracking-widest flex items-center justify-center gap-2 shadow-md w-full"
+              >
+                <Save className="w-4 h-4" />
+                Guardar WhatsApp
+              </button>
+            </form>
+
+            {whatsappFeedback && (
+              <div className="mt-4 p-3 rounded-xl text-xs font-semibold bg-brand-success/10 border border-brand-success/30 text-brand-success">
+                {whatsappFeedback}
               </div>
             )}
           </div>

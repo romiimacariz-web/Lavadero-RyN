@@ -169,19 +169,36 @@ export default function SelfService({
     setStep(1);
   };
 
-  const sendTicketWhatsApp = () => {
+  const sendTicketToCustomer = () => {
     if (!successBooking) return;
     const client = state.clientes.find(c => c.id === successBooking.clienteId);
     const textPhone = client ? client.whatsapp : telefono;
     
-    const textMsg = `*LAVADERO RyN - NUEVA RESERVA CONFIRMADA* 🚙🧼\n\n` +
-      `¡Hola *${nombre}*! Registramos correctamente tu turno solicitado de forma online:\n\n` +
+    const textMsg = `*LAVADERO RyN - MI RESERVA* 🚙🧼\n\n` +
+      `¡Hola *${nombre}*! Registramos tu turno solicitado de forma online:\n\n` +
       `📅 *Fecha:* ${successBooking.fecha}\n` +
       `⏰ *Hora:* ${successBooking.hora} hs\n` +
       `🚗 *Vehículo:* ${marca} ${modelo} (${matricula.toUpperCase()})\n` +
       `✨ *Servicio:* ${successBooking.servicioSol}\n` +
       `📌 *Estado:* ${successBooking.estado}\n\n` +
-      `Te esperamos en la sucursal. Por favor, sé puntual. ¡Muchas gracias!`;
+      `Te esperamos en la sucursal. ¡Muchas gracias por elegirnos!`;
+
+    onTriggerWhatsApp(textPhone, textMsg);
+  };
+
+  const sendTicketToBusiness = () => {
+    if (!successBooking) return;
+    const textPhone = state.businessWhatsapp || '5491123456789';
+    
+    const textMsg = `*NUEVO TURNO AUTOSERVICIO - LAVADERO RyN* 🚙🧼\n\n` +
+      `Hola Lavadero RyN, he reservado un turno online:\n\n` +
+      `👤 *Cliente:* ${nombre}\n` +
+      `📱 *Celular:* ${telefono}\n` +
+      `📅 *Fecha:* ${successBooking.fecha}\n` +
+      `⏰ *Hora:* ${successBooking.hora} hs\n` +
+      `🚗 *Vehículo:* ${marca} ${modelo} (${matricula.toUpperCase()})\n` +
+      `✨ *Servicio:* ${successBooking.servicioSol}\n` +
+      `📝 *Obs:* ${observaciones || 'S/D'}`;
 
     onTriggerWhatsApp(textPhone, textMsg);
   };
@@ -536,7 +553,22 @@ export default function SelfService({
 
             <div className="p-3 bg-brand-red/5 border border-brand-red/20 rounded-xl flex gap-2.5 text-[11px] text-gray-300 text-left">
               <Info className="w-4.5 h-4.5 text-brand-red shrink-0" />
-              <p>Recomendamos asistir 5 minutos antes. Puedes cancelar o reprogramar tu cita contactando al lavadero RyN directamente.</p>
+              <p>
+                Recomendamos asistir 5 minutos antes. Puedes cancelar o reprogramar tu cita contactando al lavadero RyN directamente
+                {state.businessWhatsapp ? (
+                  <>
+                    {' '}vía WhatsApp al{' '}
+                    <a
+                      href={`https://wa.me/${state.businessWhatsapp}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-success hover:underline font-bold font-mono"
+                    >
+                      +{state.businessWhatsapp}
+                    </a>.
+                  </>
+                ) : '.'}
+              </p>
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t border-gray-855">
@@ -613,21 +645,31 @@ export default function SelfService({
             </div>
 
             {/* Quick outbound sharing action selectors */}
-            <div className="max-w-md mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-4">
-              <button
-                onClick={sendTicketWhatsApp}
-                className="bg-[#28A745] hover:bg-green-700 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-lg hover:shadow-green-900/10"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Enviar Comprobante
-              </button>
+            <div className="max-w-md mx-auto flex flex-col gap-2.5 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  onClick={sendTicketToBusiness}
+                  className="bg-[#28A745] hover:bg-green-700 text-white font-black text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-green-900/20 uppercase tracking-wider"
+                >
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  Enviar al Lavadero
+                </button>
+
+                <button
+                  onClick={sendTicketToCustomer}
+                  className="bg-brand-card-light border border-gray-850 hover:bg-brand-card text-white font-bold text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all"
+                >
+                  <MessageSquare className="w-4 h-4 text-brand-success shrink-0" />
+                  Enviar a mi Celular
+                </button>
+              </div>
 
               <button
                 type="button"
                 onClick={resetWizard}
-                className="bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                className="bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-widest"
               >
-                <Sparkles className="w-4 h-4 animate-spin" />
+                <Sparkles className="w-4 h-4 animate-spin shrink-0" />
                 Agendar Otro Turno
               </button>
             </div>
