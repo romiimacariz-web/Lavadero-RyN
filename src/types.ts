@@ -13,6 +13,7 @@ export interface Cliente {
   direccion?: string;
   observaciones?: string;
   fechaRegistro: string;
+  fotoUrl?: string; // Client photo
 }
 
 export interface Vehiculo {
@@ -23,9 +24,12 @@ export interface Vehiculo {
   anio: number;
   clienteId: string; // Relación con Cliente
   fotosUrl: string[];
+  kilometros?: number;
+  observaciones?: string;
+  proximoMantenimiento?: string;
 }
 
-export type ReservaEstado = 'Reservado' | 'En proceso' | 'Finalizado' | 'Cancelado';
+export type ReservaEstado = 'Reservado' | 'Recibido' | 'Lavando' | 'Secando' | 'Finalizado' | 'Entregado' | 'Cancelado';
 
 export interface Reserva {
   id: string;
@@ -36,6 +40,7 @@ export interface Reserva {
   servicioSol: string; // Tipo de servicio solicitado
   estado: ReservaEstado;
   observaciones?: string;
+  empleado?: string; // Washer/employee assigned
 }
 
 export type FormaPago = 'Efectivo' | 'Transferencia' | 'Tarjeta de Crédito' | 'Tarjeta de Débito' | 'Mercado Pago' | 'Otro';
@@ -81,4 +86,10 @@ export interface DatabaseState {
   currentUserId: string;
   adminPassword?: string;
   businessWhatsapp?: string;
+  nombreNegocio?: string;
+  logoUrl?: string;
+  direccionNegocio?: string;
+  instagram?: string;
+  facebook?: string;
+  horarios?: string;
 }

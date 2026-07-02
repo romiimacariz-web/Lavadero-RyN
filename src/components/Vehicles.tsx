@@ -18,7 +18,12 @@ import {
   Image as ImageIcon, 
   Upload, 
   DollarSign,
-  Briefcase
+  Briefcase,
+  AlertTriangle,
+  FileText,
+  Clock,
+  Camera,
+  Gauge
 } from 'lucide-react';
 
 interface VehiclesProps {
@@ -47,7 +52,12 @@ export default function Vehicles({
   const [color, setColor] = useState('');
   const [anio, setAnio] = useState<number>(new Date().getFullYear());
   const [clienteId, setClienteId] = useState('');
-  const [fotoUrlInput, setFotoUrlInput] = useState('');
+  const [kilometros, setKilometros] = useState<number | ''>('');
+  const [observaciones, setObservaciones] = useState('');
+  const [proximoMantenimiento, setProximoMantenimiento] = useState('');
+  const [fotoBase64, setFotoBase64] = useState('');
+
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   // Filter vehicles by license plate (matrícula) or brand/model
   const filteredVehiculos = state.vehiculos.filter(v => 
@@ -61,9 +71,12 @@ export default function Vehicles({
     setMarca('');
     setModelo('');
     setColor('');
-    setAnio(2023);
+    setAnio(new Date().getFullYear());
     setClienteId(state.clientes[0]?.id || '');
-    setFotoUrlInput('');
+    setKilometros('');
+    setObservaciones('');
+    setProximoMantenimiento('');
+    setFotoBase64('');
     setIsAdding(true);
     setIsEditing(false);
   };
@@ -75,9 +88,45 @@ export default function Vehicles({
     setColor(v.color);
     setAnio(v.anio);
     setClienteId(v.clienteId);
-    setFotoUrlInput(v.fotosUrl[0] || '');
+    setKilometros(v.kilometros !== undefined ? v.kilometros : '');
+    setObservaciones(v.observaciones || '');
+    setProximoMantenimiento(v.proximoMantenimiento || '');
+    setFotoBase64(v.fotosUrl?.[0] || '');
     setIsAdding(false);
     setIsEditing(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,55 +134,49 @@ export default function Vehicles({
     if (!matricula || !marca || !modelo || !clienteId) return;
 
     const formattedMatricula = matricula.replace(/\s+/g, '').toUpperCase();
-    const cleanFotos = fotoUrlInput ? [fotoUrlInput] : [
-      'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-    ];
+    const defaultCarPhoto = 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3';
+    const finalFotos = fotoBase64 ? [fotoBase64] : [defaultCarPhoto];
+
+    const payload: Vehiculo = {
+      matricula: formattedMatricula,
+      marca,
+      modelo,
+      color,
+      anio: Number(anio),
+      clienteId,
+      fotosUrl: finalFotos,
+      kilometros: kilometros !== '' ? Number(kilometros) : undefined,
+      observaciones: observaciones || undefined,
+      proximoMantenimiento: proximoMantenimiento || undefined
+    };
 
     if (isAdding) {
-      onAddVehiculo({
-        matricula: formattedMatricula,
-        marca,
-        modelo,
-        color,
-        anio: Number(anio),
-        clienteId,
-        fotosUrl: cleanFotos
-      });
+      onAddVehiculo(payload);
       setIsAdding(false);
     } else if (isEditing && selectedVehiculo) {
-      onUpdateVehiculo({
-        ...selectedVehiculo,
-        marca,
-        modelo,
-        color,
-        anio: Number(anio),
-        clienteId,
-        fotosUrl: cleanFotos
-      });
-      // Update selected locally
-      setSelectedVehiculo({
-        ...selectedVehiculo,
-        marca,
-        modelo,
-        color,
-        anio: Number(anio),
-        clienteId,
-        fotosUrl: cleanFotos
-      });
+      onUpdateVehiculo(payload);
+      setSelectedVehiculo(payload);
       setIsEditing(false);
     }
   };
 
-  // Get associated owner
   const getVehiculoOwner = (cliId: string): Cliente | undefined => {
     return state.clientes.find(c => c.id === cliId);
   };
 
-  // Get service logs of the vehicle
   const getVehiculoServicios = (plate: string) => {
     return state.servicios
       .filter(s => s.vehiculoMatricula.toUpperCase() === plate.toUpperCase())
       .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  };
+
+  const getVehiculoTotalSpent = (plate: string) => {
+    return getVehiculoServicios(plate).reduce((acc, curr) => acc + curr.precio, 0);
+  };
+
+  const getVehiculoLastWash = (plate: string) => {
+    const services = getVehiculoServicios(plate);
+    return services[0]?.fecha || 'Sin lavados';
   };
 
   return (
@@ -141,7 +184,7 @@ export default function Vehicles({
       {/* List Column */}
       <div className="lg:col-span-5 p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-display font-extrabold text-white">Vehículos Vinculados</h2>
+          <h2 className="text-xl font-display font-extrabold text-white">Vehículos Registrados</h2>
           <button 
             type="button"
             onClick={handleOpenAdd}
@@ -157,7 +200,7 @@ export default function Vehicles({
           <input
             type="text"
             className="block w-full pl-9 pr-4 py-2 text-sm border border-gray-800 rounded-xl bg-brand-card text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-red font-mono"
-            placeholder="Buscar por matrícula (patente)..."
+            placeholder="Buscar por matrícula (patente) o modelo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -166,8 +209,8 @@ export default function Vehicles({
           </div>
         </div>
 
-        {/* Vehicle cards list */}
-        <div className="space-y-2 overflow-y-auto max-h-[460px] pr-1">
+        {/* Vehicle list */}
+        <div className="space-y-2 overflow-y-auto max-h-[520px] pr-1">
           {filteredVehiculos.map(v => {
             const owner = getVehiculoOwner(v.clienteId);
             const isSelected = selectedVehiculo?.matricula === v.matricula;
@@ -176,15 +219,15 @@ export default function Vehicles({
               <div 
                 key={v.matricula}
                 onClick={() => { setSelectedVehiculo(v); setIsAdding(false); setIsEditing(false); }}
-                className={`p-3.5 rounded-xl border border-gray-800/60 cursor-pointer flex justify-between items-center transition-all ${
+                className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
                   isSelected 
                     ? 'bg-brand-red/10 border-brand-red' 
-                    : 'bg-brand-card-light hover:bg-[#2B2B2B]/60'
+                    : 'bg-brand-card-light border-gray-800/60 hover:bg-[#2B2B2B]/60'
                 }`}
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="bg-white text-black text-[10.5px] font-mono font-bold px-2 py-0.5 rounded tracking-wider leading-none plate-font">
+                    <span className="bg-white text-black text-[10px] font-mono font-black px-1.5 py-0.5 rounded tracking-wider leading-none plate-font uppercase">
                       {v.matricula}
                     </span>
                     <span className="font-display font-bold text-white text-sm capitalize">{v.marca} {v.modelo}</span>
@@ -193,7 +236,17 @@ export default function Vehicles({
                     <User className="w-3.5 h-3.5 text-brand-red/80" />
                     <span>Dueño: <span className="text-gray-300 font-semibold">{owner?.nombre || 'Desconocido'}</span></span>
                   </div>
-                  <p className="text-[10px] text-gray-500 font-sans">Color: {v.color} &bull; Año: {v.anio}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 font-sans">
+                    <span>Color: {v.color}</span>
+                    <span>&bull;</span>
+                    <span>Año: {v.anio}</span>
+                    {v.kilometros && (
+                      <>
+                        <span>&bull;</span>
+                        <span className="font-mono">{v.kilometros.toLocaleString('es-AR')} km</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform ${isSelected ? 'translate-x-1 text-brand-red' : ''}`} />
@@ -212,9 +265,63 @@ export default function Vehicles({
         {isAdding || isEditing ? (
           <div className="p-6 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
             <h2 className="text-lg font-display font-bold text-white border-b border-gray-800 pb-2">
-              {isAdding ? 'Registrar Nuevo Vehículo' : `Editar Vehículo Patente: ${selectedVehiculo?.matricula}`}
+              {isAdding ? 'Vincular Nuevo Vehículo' : `Editar Vehículo Patente: ${selectedVehiculo?.matricula}`}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+              
+              {/* Photo uploader with drag and drop */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-gray-400 uppercase tracking-wider block">Foto del Vehículo</label>
+                <div 
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-2xl p-4 text-center transition flex flex-col items-center justify-center gap-2 cursor-pointer ${
+                    isDraggingFile 
+                      ? 'border-brand-red bg-brand-red/5' 
+                      : 'border-gray-800 hover:border-brand-red/30 bg-brand-card-light'
+                  }`}
+                >
+                  {fotoBase64 ? (
+                    <div className="relative">
+                      <img 
+                        src={fotoBase64} 
+                        alt="Previsualización" 
+                        className="w-40 h-24 object-cover rounded-xl border border-gray-800 shadow-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFotoBase64('')}
+                        className="absolute -top-2 -right-2 bg-brand-red text-white p-1 rounded-full text-xs shadow-md"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Camera className="w-8 h-8 text-gray-500" />
+                      <p className="text-xs text-gray-300 font-semibold">Arrastra una foto del auto o haz clic para subir</p>
+                      <p className="text-[10px] text-gray-500">Soporta formatos PNG/JPG. Se almacena en la base del sistema.</p>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageChange}
+                    className="absolute opacity-0 w-full max-w-[280px] h-20 cursor-pointer hidden"
+                    id="vehicle-file-upload"
+                  />
+                  {!fotoBase64 && (
+                    <label 
+                      htmlFor="vehicle-file-upload" 
+                      className="bg-brand-card border border-gray-700 hover:border-brand-red/50 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg cursor-pointer mt-1"
+                    >
+                      Seleccionar Archivo
+                    </label>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Matrícula / Patente *</label>
@@ -227,11 +334,10 @@ export default function Vehicles({
                     value={matricula}
                     onChange={(e) => setMatricula(e.target.value)}
                   />
-                  {isAdding && <p className="text-[10px] text-gray-500 italic">Identificador único. Mayúsculas sin espacios.</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Cliente Asociado (Propietario) *</label>
+                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Propietario Asociado *</label>
                   <select
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
                     value={clienteId}
@@ -239,7 +345,7 @@ export default function Vehicles({
                     required
                     disabled={isEditing}
                   >
-                    <option value="">-- Elegir propietario --</option>
+                    <option value="">-- Seleccionar propietario --</option>
                     {state.clientes.map(c => (
                       <option key={c.id} value={c.id}>{c.nombre} ({c.telefono})</option>
                     ))}
@@ -254,7 +360,7 @@ export default function Vehicles({
                     type="text"
                     required
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red capitalize"
-                    placeholder="Ej: Toyota, Ford..."
+                    placeholder="Ej: Honda, Chevrolet..."
                     value={marca}
                     onChange={(e) => setMarca(e.target.value)}
                   />
@@ -265,7 +371,7 @@ export default function Vehicles({
                     type="text"
                     required
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red capitalize"
-                    placeholder="Ej: Hilux, Fiesta..."
+                    placeholder="Ej: Civic, Cruze..."
                     value={modelo}
                     onChange={(e) => setModelo(e.target.value)}
                   />
@@ -276,14 +382,14 @@ export default function Vehicles({
                     type="text"
                     required
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
-                    placeholder="Ej: Negro, Azul..."
+                    placeholder="Ej: Gris Plata, Azul..."
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Año de Fabricación</label>
                   <input
@@ -296,15 +402,34 @@ export default function Vehicles({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Imagen del Vehículo (URL de foto)</label>
+                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Kilómetros</label>
                   <input
-                    type="text"
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white text-xs focus:outline-none focus:ring-1 focus:ring-brand-red"
-                    placeholder="Dejar vacío para usar foto por defecto"
-                    value={fotoUrlInput}
-                    onChange={(e) => setFotoUrlInput(e.target.value)}
+                    type="number"
+                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                    placeholder="Kilometraje actual..."
+                    value={kilometros}
+                    onChange={(e) => setKilometros(e.target.value !== '' ? Number(e.target.value) : '')}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Próximo Mantenimiento</label>
+                  <input
+                    type="date"
+                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red font-mono"
+                    value={proximoMantenimiento}
+                    onChange={(e) => setProximoMantenimiento(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Observaciones Técnicas del Vehículo</label>
+                <textarea
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white min-h-[90px] focus:outline-none focus:ring-1 focus:ring-brand-red"
+                  placeholder="Detalles sobre el estado (ej: rayón en guardabarros izquierdo, llantas personalizadas, tapizado delicado...)"
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                ></textarea>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
@@ -326,20 +451,23 @@ export default function Vehicles({
           </div>
         ) : selectedVehiculo ? (
           <div className="space-y-6">
+            
             {/* Vehicle Profile Card */}
-            <div className="p-6 bg-brand-card rounded-2xl border border-gray-800 relative">
+            <div className="p-6 bg-brand-card rounded-2xl border border-gray-800 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-brand-red/5 rounded-full blur-2xl pointer-events-none"></div>
+
               {/* Actions */}
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <button
                   onClick={() => handleOpenEdit(selectedVehiculo)}
-                  className="p-2 bg-brand-card-light text-gray-300 hover:text-white rounded-lg border border-gray-800 hover:border-gray-700"
+                  className="p-2 bg-brand-card-light text-gray-300 hover:text-white rounded-lg border border-gray-800 hover:border-gray-700 transition"
                   title="Editar Vehículo"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className="p-2 bg-brand-card-light text-brand-red/70 hover:text-brand-red rounded-lg border border-gray-800 hover:border-brand-red/30"
+                  className="p-2 bg-brand-card-light text-brand-red/70 hover:text-brand-red rounded-lg border border-gray-800 hover:border-brand-red/30 transition"
                   title="Eliminar Vehículo"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -348,97 +476,128 @@ export default function Vehicles({
 
               <div className="flex flex-col md:flex-row gap-6">
                 {/* Vehicle Photo display */}
-                <div className="w-full md:w-44 h-28 md:h-36 rounded-xl bg-gray-900 overflow-hidden relative border border-gray-800 shadow-inner group shrink-0">
+                <div className="w-full md:w-48 h-32 md:h-36 rounded-2xl bg-gray-900 overflow-hidden relative border border-gray-800 shadow-inner group shrink-0">
                   <img 
-                    src={selectedVehiculo.fotosUrl[0]} 
+                    src={selectedVehiculo.fotosUrl?.[0]} 
                     alt="Foto del vehículo" 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-0.5 rounded text-[9px] text-gray-300 flex items-center gap-1">
-                    <ImageIcon className="w-3 h-3 text-brand-red" />
-                    <span>Control</span>
+                  <div className="absolute bottom-2.5 right-2.5 bg-black/70 px-2 py-0.5 rounded text-[9px] text-gray-300 flex items-center gap-1 border border-gray-800">
+                    <ImageIcon className="w-3.5 h-3.5 text-brand-red" />
+                    <span>Control Técnico</span>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <span className="bg-white text-black text-xs font-mono font-extrabold px-2.5 py-1 rounded tracking-widest plate-font shadow-lg">
+                    <span className="bg-white text-black text-xs font-mono font-black px-3 py-1 rounded tracking-widest plate-font shadow-lg uppercase">
                       {selectedVehiculo.matricula}
                     </span>
-                    <span className="text-gray-400 text-sm font-mono tracking-wider">Año {selectedVehiculo.anio}</span>
+                    <span className="text-gray-400 text-xs font-mono tracking-wider">Modelo {selectedVehiculo.anio}</span>
                   </div>
 
                   <h2 className="text-2xl font-display font-extrabold text-white capitalize leading-tight">
                     {selectedVehiculo.marca} {selectedVehiculo.modelo}
                   </h2>
 
-                  {/* Owner quicklink */}
+                  {/* Owner link */}
                   <div className="p-3 bg-brand-card-light rounded-xl border border-gray-800 inline-flex items-center gap-3 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-brand-red/10 text-brand-red flex items-center justify-center font-bold">
-                      {getVehiculoOwner(selectedVehiculo.clienteId)?.nombre[0] || 'D'}
+                    <div className="w-8 h-8 rounded-xl bg-brand-red/10 text-brand-red flex items-center justify-center font-bold">
+                      {getVehiculoOwner(selectedVehiculo.clienteId)?.nombre[0] || 'C'}
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-mono">PROPIETARIO</p>
-                      <p className="text-white font-bold">{getVehiculoOwner(selectedVehiculo.clienteId)?.nombre || 'Cliente de paso'}</p>
+                      <p className="text-[10px] text-gray-500 font-mono">DUEÑO ASOCIADO</p>
+                      <p className="text-white font-bold text-xs">{getVehiculoOwner(selectedVehiculo.clienteId)?.nombre || 'Cliente Particular'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Technical badges */}
-              <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-gray-800/80 text-xs">
-                <div className="p-3 bg-brand-card-light rounded-xl flex items-center justify-between text-gray-400">
-                  <span className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-brand-red" />
-                    Color:
-                  </span>
-                  <span className="text-white font-semibold capitalize">{selectedVehiculo.color}</span>
+              {/* Technical / Extended Information Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 p-4 bg-brand-card-light rounded-2xl border border-gray-850">
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Kilometraje</p>
+                  <p className="text-sm font-display font-black text-white mt-1 flex items-center justify-center gap-1 font-mono">
+                    <Gauge className="w-4 h-4 text-brand-red" />
+                    {selectedVehiculo.kilometros !== undefined ? `${selectedVehiculo.kilometros.toLocaleString('es-AR')} km` : 'N/D'}
+                  </p>
                 </div>
-                <div className="p-3 bg-brand-card-light rounded-xl flex items-center justify-between text-gray-400">
-                  <span className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-brand-warning" />
-                    Lavados Registrados:
-                  </span>
-                  <span className="text-white font-mono font-semibold">
-                    {getVehiculoServicios(selectedVehiculo.matricula).length}
-                  </span>
+                <div className="text-center border-l sm:border-x border-gray-800">
+                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Total Gastado</p>
+                  <p className="text-sm font-display font-black text-brand-success mt-1 font-mono">
+                    ${getVehiculoTotalSpent(selectedVehiculo.matricula).toLocaleString('es-AR')}
+                  </p>
+                </div>
+                <div className="text-center border-t sm:border-t-0 sm:border-r border-gray-800 pt-3 sm:pt-0">
+                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Último Lavado</p>
+                  <p className="text-xs font-bold text-gray-300 mt-2 truncate">
+                    {getVehiculoLastWash(selectedVehiculo.matricula).split(' ')[0]}
+                  </p>
+                </div>
+                <div className="text-center pt-3 sm:pt-0">
+                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Mantenimiento</p>
+                  <p className="text-xs font-bold text-[#FFC107] mt-2 truncate">
+                    {selectedVehiculo.proximoMantenimiento || 'Sin programar'}
+                  </p>
                 </div>
               </div>
+
+              {selectedVehiculo.proximoMantenimiento && new Date(selectedVehiculo.proximoMantenimiento) < new Date() && (
+                <div className="mt-4 p-3 bg-brand-red/10 border border-brand-red/20 rounded-xl flex items-center gap-2.5 text-xs text-brand-red">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <p>
+                    <span className="font-bold">Mantenimiento Vencido:</span> Este vehículo superó su fecha programada de lavado preventivo/revisión ({selectedVehiculo.proximoMantenimiento}).
+                  </p>
+                </div>
+              )}
+
+              {/* Technical Observations Section */}
+              {selectedVehiculo.observaciones && (
+                <div className="mt-4 p-3.5 bg-brand-card border border-gray-800 rounded-2xl text-xs text-gray-300 flex items-start gap-2.5">
+                  <FileText className="w-4.5 h-4.5 text-brand-warning shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-white">Observaciones Técnicas / Diagnóstico:</p>
+                    <p className="mt-1 leading-relaxed text-gray-400">{selectedVehiculo.observaciones}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Service Logs for this License Plate */}
+            {/* Service history detailed logs */}
             <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-3">
-              <h3 className="text-sm font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2">
+              <h3 className="text-sm font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-gray-850 pb-2">
                 <Calendar className="w-4 h-4 text-brand-red" />
                 Historial de Servicios en este Vehículo ({getVehiculoServicios(selectedVehiculo.matricula).length})
               </h3>
 
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
                 {getVehiculoServicios(selectedVehiculo.matricula).map(s => (
-                  <div key={s.id} className="p-3.5 bg-brand-card-light rounded-xl border border-gray-800 flex justify-between items-center text-xs">
-                    <div>
+                  <div key={s.id} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center text-xs hover:border-gray-800 transition">
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-white text-sm capitalize">{s.tipo}</span>
-                        <span className="text-[10px] bg-brand-card text-gray-400 border border-gray-700 px-2 py-0.5 rounded-full font-mono">
+                        <span className="text-[10px] bg-white/10 text-gray-300 font-bold px-1.5 py-0.5 rounded font-mono">
                           ID: {s.id}
                         </span>
                       </div>
-                      <p className="text-gray-400 font-mono text-[10px] mt-1">Realizado: {s.fecha} hs &bull; {s.formaPago}</p>
-                      {s.observaciones && <p className="text-[11px] text-gray-500 mt-1 italic">&ldquo;{s.observaciones}&rdquo;</p>}
+                      <p className="text-gray-400 font-mono text-[10px] flex items-center gap-1 mt-1">
+                        <Clock className="w-3.5 h-3.5 text-gray-500" />
+                        <span>Realizado: {s.fecha} hs &bull; {s.formaPago}</span>
+                      </p>
+                      {s.observaciones && <p className="text-[11px] text-gray-500 mt-1 italic font-sans">&ldquo;{s.observaciones}&rdquo;</p>}
                     </div>
 
                     <div className="text-right">
-                      <span className="font-mono text-sm text-brand-success font-extrabold flex items-center justify-end gap-0.5">
-                        <DollarSign className="w-3 px-0 text-brand-success shrink-0" />
-                        {s.precio.toLocaleString('es-AR')}
+                      <span className="font-mono text-sm text-brand-success font-extrabold">
+                        ${s.precio.toLocaleString('es-AR')}
                       </span>
                     </div>
                   </div>
                 ))}
 
                 {getVehiculoServicios(selectedVehiculo.matricula).length === 0 && (
-                  <p className="p-4 rounded-xl text-center text-xs text-gray-500 italic border border-dashed border-gray-800 col-span-2">
+                  <p className="p-4 rounded-xl text-center text-xs text-gray-500 italic border border-dashed border-gray-850">
                     Ningún lavado registrado en nuestro sistema para este vehículo todavía.
                   </p>
                 )}
@@ -446,17 +605,17 @@ export default function Vehicles({
             </div>
           </div>
         ) : (
-          <div className="p-12 text-center bg-brand-card rounded-2xl border border-gray-100/10 space-y-3 flex flex-col items-center justify-center min-h-[400px]">
+          <div className="p-12 text-center bg-brand-card rounded-2xl border border-gray-800 space-y-3 flex flex-col items-center justify-center min-h-[440px]">
             <Car className="w-16 h-16 text-gray-600 animate-pulse" />
             <h3 className="text-lg font-display font-medium text-gray-300">Selecciona un Vehículo</h3>
             <p className="text-xs text-gray-500 max-w-sm">
-              Inicia búsquedas ingresando la patente del vehículo a la izquierda. Verás su ficha técnica completa, fotos de control y su historial de visitas realizadas en Lavadero RyN.
+              Inicia búsquedas ingresando la patente a la izquierda para visualizar la ficha de control, kilometraje, historial de mantenimientos preventivos y servicios facturados.
             </p>
           </div>
         )}
       </div>
 
-      {/* Modern custom modal for delete confirmation */}
+      {/* Delete confirmation modal */}
       {showConfirmDelete && selectedVehiculo && (
         <div id="confirm-delete-vehiculo-modal" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp">

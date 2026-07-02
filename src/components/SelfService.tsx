@@ -715,7 +715,8 @@ export default function SelfService({
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      if (exitPassword === 'ryn123' || exitPassword === '') {
+                      const correctPassword = state.adminPassword || 'ryn123';
+                      if (exitPassword === correctPassword) {
                         onExit();
                         setShowExitModal(false);
                       } else {
@@ -747,7 +748,8 @@ export default function SelfService({
               <button
                 type="button"
                 onClick={() => {
-                  if (exitPassword === 'ryn123' || exitPassword === '') {
+                  const correctPassword = state.adminPassword || 'ryn123';
+                  if (exitPassword === correctPassword) {
                     onExit();
                     setShowExitModal(false);
                   } else {

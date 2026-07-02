@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DatabaseState, Reserva, Cliente, Vehiculo, ReservaEstado } from '../types';
 import { 
   Calendar, 
@@ -22,7 +22,12 @@ import {
   Sparkles,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserCheck,
+  Check,
+  Edit,
+  ArrowRightLeft,
+  Info
 } from 'lucide-react';
 import { getWhatsAppHref, getConfirmationMessage } from '../utils/whatsapp';
 
@@ -36,6 +41,15 @@ interface BookingCalendarProps {
 
 type CalendarViewMode = 'Día' | 'Semana' | 'Mes';
 
+const EMPLEADOS_WASHERS = [
+  'Juan Pérez',
+  'Pedro Gómez',
+  'Carlos Rodríguez',
+  'Matías López',
+  'Santi Herrera',
+  'Facundo Díaz'
+];
+
 export default function BookingCalendar({ 
   state, 
   onAddReserva, 
@@ -43,19 +57,21 @@ export default function BookingCalendar({
   onDeleteReserva,
   onTriggerWhatsApp
 }: BookingCalendarProps) {
-  // Navigation variables for date
+  // Date and view management
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('Día');
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('Semana');
   const [isAdding, setIsAdding] = useState(false);
   const [reservaToDelete, setReservaToDelete] = useState<string | null>(null);
+  const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
 
   // Form states
   const [clienteId, setClienteId] = useState('');
   const [vehiculoMatricula, setVehiculoMatricula] = useState('');
   const [fecha, setFecha] = useState(selectedDate);
-  const [hora, setHora] = useState('09:00');
+  const [hora, setHora] = useState('08:00');
   const [servicioSol, setServicioSol] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [empleado, setEmpleado] = useState('');
 
   // Default dynamic package choice when catalog loads
   useEffect(() => {
@@ -73,53 +89,73 @@ export default function BookingCalendar({
     return state.reservas.filter(r => r.fecha === dateStr);
   };
 
-  // Weekly calculations
-  const getReservasForWeek = (): Reserva[] => {
-    const startOfWeek = new Date(selectedDate);
-    // Find monday of current selected block
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
-    const monday = new Date(startOfWeek.setDate(diff));
+  // Get days of the week starting from Monday of selected date's week
+  const daysOfWeek = useMemo((): Date[] => {
+    const current = new Date(selectedDate);
+    const day = current.getDay();
+    const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Monday
+    const monday = new Date(current.setDate(diff));
 
-    const daysOfWeek: string[] = [];
+    const days: Date[] = [];
     for (let i = 0; i < 7; i++) {
-      const current = new Date(monday);
-      current.setDate(monday.getDate() + i);
-      daysOfWeek.push(current.toISOString().split('T')[0]);
+      const nextDay = new Date(monday);
+      nextDay.setDate(monday.getDate() + i);
+      days.push(nextDay);
     }
+    return days;
+  }, [selectedDate]);
 
-    return state.reservas.filter(r => daysOfWeek.includes(r.fecha));
-  };
-
-  // Monthly calculations
-  const getReservasForMonth = (): Reserva[] => {
+  // Get days of month for Month view grid
+  const daysOfMonth = useMemo((): (Date | null)[] => {
     const selected = new Date(selectedDate);
     const year = selected.getFullYear();
-    const month = selected.getMonth(); // 0-indexed
+    const month = selected.getMonth();
 
-    return state.reservas.filter(r => {
-      const d = new Date(r.fecha);
-      return d.getFullYear() === year && d.getMonth() === month;
-    });
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // Day of week index for first day (Monday as index 0)
+    let firstDayIndex = firstDay.getDay() - 1;
+    if (firstDayIndex === -1) firstDayIndex = 6; // Sunday
+
+    const days: (Date | null)[] = [];
+    // Pad previous month days
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push(null);
+    }
+
+    // Populate actual month days
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(year, month, i));
+    }
+
+    return days;
+  }, [selectedDate]);
+
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, r: Reserva) => {
+    e.dataTransfer.setData('text/plain', r.id);
   };
 
-  const currentReservas = () => {
-    switch(viewMode) {
-      case 'Día':
-        return getReservasForDate(selectedDate).sort((a,b) => a.hora.localeCompare(b.hora));
-      case 'Semana':
-        return getReservasForWeek().sort((a,b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
-      case 'Mes':
-        return getReservasForMonth().sort((a,b) => a.fecha.localeCompare(b.fecha));
-      default:
-        return [];
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDropOnDay = (e: React.DragEvent, targetDateStr: string) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const reserva = state.reservas.find(r => r.id === id);
+    if (reserva && reserva.fecha !== targetDateStr) {
+      onUpdateReserva({
+        ...reserva,
+        fecha: targetDateStr
+      });
     }
   };
 
   // Auto-fill form when choosing user
   const handleClienteChange = (cid: string) => {
     setClienteId(cid);
-    // Auto lookup first vehicle linked
     const firstCar = state.vehiculos.find(v => v.clienteId === cid);
     if (firstCar) {
       setVehiculoMatricula(firstCar.matricula);
@@ -139,34 +175,63 @@ export default function BookingCalendar({
       hora,
       servicioSol,
       estado: 'Reservado',
-      observaciones: observaciones.trim() || undefined
+      observaciones: observaciones.trim() || undefined,
+      empleado: empleado || undefined
     });
 
     setIsAdding(false);
-    // Clear fields
     setObservaciones('');
+    setEmpleado('');
   };
 
-  function changeSelectedDate(days: number) {
+  const changeSelectedDate = (days: number) => {
     const current = new Date(selectedDate);
     current.setDate(current.getDate() + days);
     setSelectedDate(current.toISOString().split('T')[0]);
     setFecha(current.toISOString().split('T')[0]);
-  }
+  };
 
-  // Get status color coding
+  const changeSelectedMonth = (months: number) => {
+    const current = new Date(selectedDate);
+    current.setMonth(current.getMonth() + months);
+    setSelectedDate(current.toISOString().split('T')[0]);
+    setFecha(current.toISOString().split('T')[0]);
+  };
+
+  // Service package specific color schemes
+  const getServiceColorStyle = (srvName: string) => {
+    const name = srvName.toLowerCase();
+    if (name.includes('premium') || name.includes('completo')) {
+      return 'bg-amber-500/10 hover:bg-amber-500/20 text-[#FFC107] border-brand-warning/30';
+    } else if (name.includes('acril') || name.includes('pulido') || name.includes('ceramico')) {
+      return 'bg-red-500/10 hover:bg-red-500/20 text-brand-red border-brand-red/30';
+    } else if (name.includes('motor') || name.includes('chasis')) {
+      return 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-800/40';
+    } else if (name.includes('tapizado') || name.includes('interior')) {
+      return 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-800/40';
+    } else {
+      return 'bg-emerald-500/10 hover:bg-emerald-500/20 text-brand-success border-brand-success/30';
+    }
+  };
+
   const getStatusStyle = (estado: ReservaEstado) => {
     switch(estado) {
       case 'Reservado':
         return 'bg-blue-900/30 text-blue-300 border-blue-800';
-      case 'En proceso':
-        return 'bg-[#FFC107]/20 text-[#FFC107] border-brand-warning/30 animate-pulse';
+      case 'Recibido':
+        return 'bg-purple-900/30 text-purple-300 border-purple-800';
+      case 'Lavando':
+        return 'bg-orange-950/40 text-orange-400 border-orange-850 animate-pulse';
+      case 'Secando':
+        return 'bg-cyan-950/40 text-cyan-400 border-cyan-850';
       case 'Finalizado':
-        return 'bg-[#28A745]/20 text-[#28A745] border-brand-success/30';
+        return 'bg-emerald-950/40 text-brand-success border-brand-success/30';
+      case 'Entregado':
+        return 'bg-gray-800 text-gray-400 border-gray-700';
       case 'Cancelado':
         return 'bg-brand-red/10 text-brand-red border-brand-red/30';
       default:
-        return 'bg-gray-800 text-gray-300';
+        return 'bg-gray-800 text-gray-300 border-gray-700';
     }
   };
 
@@ -181,6 +246,34 @@ export default function BookingCalendar({
     onTriggerWhatsApp(client.whatsapp, msg);
   };
 
+  const handleQuickStatusChange = (res: Reserva, newStatus: ReservaEstado) => {
+    onUpdateReserva({
+      ...res,
+      estado: newStatus
+    });
+    if (selectedReserva && selectedReserva.id === res.id) {
+      setSelectedReserva({
+        ...selectedReserva,
+        estado: newStatus
+      });
+    }
+  };
+
+  const handleQuickEmployeeAssign = (res: Reserva, empName: string) => {
+    onUpdateReserva({
+      ...res,
+      empleado: empName === 'Ninguno' ? undefined : empName
+    });
+    if (selectedReserva && selectedReserva.id === res.id) {
+      setSelectedReserva({
+        ...selectedReserva,
+        empleado: empName === 'Ninguno' ? undefined : empName
+      });
+    }
+  };
+
+  // Memoized grid data values are declared and computed above via useMemo.
+
   return (
     <div className="space-y-6">
       {/* Calendar Header */}
@@ -190,8 +283,8 @@ export default function BookingCalendar({
             <Calendar className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-display font-extrabold text-white">Agenda de Reservas</h2>
-            <p className="text-xs text-gray-400">Control visual por Día, Semana y Mes</p>
+            <h2 className="text-xl font-display font-extrabold text-white">Agenda del Lavadero</h2>
+            <p className="text-xs text-gray-400">Arqueo visual en cuadrícula interactiva con soporte de reordenamiento drag-and-drop</p>
           </div>
         </div>
 
@@ -215,25 +308,31 @@ export default function BookingCalendar({
         {/* Create Booking trigger */}
         <button
           onClick={() => { setIsAdding(true); setFecha(selectedDate); }}
-          className="bg-brand-red hover:bg-red-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-2"
+          className="bg-brand-red hover:bg-red-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow-lg"
         >
           <Plus className="w-4 h-4" />
           Crear Reserva
         </button>
       </div>
 
-      {/* Date controls for timeline */}
-      <div className="flex items-center justify-between p-3.5 bg-brand-card rounded-2xl border border-gray-800">
+      {/* Date controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-brand-card rounded-2xl border border-gray-800 gap-3">
         <div className="flex items-center gap-1">
           <button 
-            onClick={() => changeSelectedDate(-1)} 
-            className="p-1.5 hover:bg-brand-card-light rounded-lg text-gray-400 hover:text-white border border-gray-800"
+            onClick={() => viewMode === 'Mes' ? changeSelectedMonth(-1) : changeSelectedDate(-1)} 
+            className="p-2 hover:bg-brand-card-light rounded-xl text-gray-400 hover:text-white border border-gray-800 transition"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => changeSelectedDate(1)} 
-            className="p-1.5 hover:bg-brand-card-light rounded-lg text-gray-400 hover:text-white border border-gray-800"
+            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+            className="bg-brand-card-light border border-gray-850 hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl text-xs font-mono"
+          >
+            Hoy
+          </button>
+          <button 
+            onClick={() => viewMode === 'Mes' ? changeSelectedMonth(1) : changeSelectedDate(1)} 
+            className="p-2 hover:bg-brand-card-light rounded-xl text-gray-400 hover:text-white border border-gray-800 transition"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -241,32 +340,33 @@ export default function BookingCalendar({
 
         <div className="text-center">
           <span className="text-sm font-semibold text-white font-display">
-            {new Date(selectedDate).toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+            {viewMode === 'Mes' ? (
+              new Date(selectedDate).toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
+            ) : viewMode === 'Semana' ? (
+              `Semana del ${daysOfWeek[0].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} al ${daysOfWeek[6].toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            ) : (
+              new Date(selectedDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+            )}
           </span>
-          <span className="block text-[10px] text-gray-500 font-mono mt-0.5">Filtro: {viewMode}</span>
         </div>
 
         <input 
           type="date" 
           value={selectedDate}
           onChange={(e) => { setSelectedDate(e.target.value); setFecha(e.target.value); }}
-          className="bg-brand-card-light border border-gray-800 rounded-lg px-2 py-1 text-xs text-white focus:ring-1 focus:ring-brand-red focus:outline-none"
+          className="bg-brand-card-light border border-gray-850 rounded-xl px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-brand-red focus:outline-none font-mono"
         />
       </div>
 
-      {/* Calendar body */}
+      {/* Main Grid Wrapper */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Reservation form modal / collapsible sidebar */}
+        
+        {/* Reservation form collapsible sidebar */}
         {isAdding && (
           <div className="lg:col-span-4 p-5 bg-brand-card rounded-2xl border border-brand-red/30 space-y-4">
             <h3 className="text-base font-display font-bold text-white border-b border-gray-800 pb-2 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-brand-red animate-spin" />
-              Nueva Reserva
+              <Sparkles className="w-4 h-4 text-brand-red animate-pulse" />
+              Nueva Reserva de Turno
             </h3>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
@@ -276,7 +376,7 @@ export default function BookingCalendar({
                   required
                   value={clienteId}
                   onChange={(e) => handleClienteChange(e.target.value)}
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none"
                 >
                   <option value="">-- Seleccionar Cliente --</option>
                   {state.clientes.map(c => (
@@ -286,16 +386,15 @@ export default function BookingCalendar({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Matrícula (Vehículo) *</label>
+                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Patente del Vehículo *</label>
                 <input
                   type="text"
                   required
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white font-mono uppercase focus:outline-none focus:ring-1 focus:ring-brand-red"
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white font-mono uppercase focus:outline-none"
                   placeholder="Ej: AA123BC"
                   value={vehiculoMatricula}
                   onChange={(e) => setVehiculoMatricula(e.target.value.toUpperCase())}
                 />
-                <p className="text-[10px] text-gray-400">Si el cliente posee un vehículo, se autocompletará.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -306,18 +405,25 @@ export default function BookingCalendar({
                     required
                     value={fecha}
                     onChange={(e) => setFecha(e.target.value)}
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-2 py-2 text-white focus:outline-none"
+                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-2 py-2 text-white focus:outline-none font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Hora *</label>
-                  <input
-                    type="time"
+                  <select
                     required
                     value={hora}
                     onChange={(e) => setHora(e.target.value)}
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-2 py-2 text-white focus:outline-none font-mono"
-                  />
+                  >
+                    <option value="08:00">08:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="20:00">20:00</option>
+                  </select>
                 </div>
               </div>
 
@@ -336,11 +442,25 @@ export default function BookingCalendar({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Indicaciones Especiales</label>
+                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Asignar Lavador / Empleado</label>
+                <select
+                  value={empleado}
+                  onChange={(e) => setEmpleado(e.target.value)}
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                >
+                  <option value="">Sin asignar</option>
+                  {EMPLEADOS_WASHERS.map(emp => (
+                    <option key={emp} value={emp}>{emp}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Observaciones de Ingreso</label>
                 <textarea
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
-                  placeholder="Detalles..."
+                  placeholder="Detalles particulares..."
                   className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white min-h-[60px] focus:outline-none"
                 ></textarea>
               </div>
@@ -364,104 +484,305 @@ export default function BookingCalendar({
           </div>
         )}
 
-        {/* Schedule List ledger */}
+        {/* Dynamic Interactive Google Calendar Grid */}
         <div className={`p-5 bg-brand-card rounded-2xl border border-gray-800 ${isAdding ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-display font-extrabold text-white flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-brand-red" />
-              Lista de Turnos de Lavado ({currentReservas().length})
-            </h3>
-            <span className="text-xs font-mono text-gray-400">Rango: {viewMode}</span>
-          </div>
-
-          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-            {currentReservas().map(res => {
-              const client = getCliente(res.clienteId);
-              const car = getVehiculo(res.vehiculoMatricula);
-
-              return (
-                <div 
-                  key={res.id} 
-                  className="p-4 bg-brand-card-light rounded-xl border border-gray-800/80 hover:border-gray-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="space-y-1 md:max-w-md">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-mono font-bold bg-white text-black px-1.5 py-0.5 rounded tracking-wide plate-font">
-                        {res.vehiculoMatricula}
-                      </span>
-                      <span className="text-xs text-gray-400 capitalize">{car?.marca} {car?.modelo || '(Vehículo no cargado)'}</span>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${getStatusStyle(res.estado)}`}>
-                        &bull; {res.estado}
-                      </span>
-                    </div>
-
-                    <p className="font-display font-bold text-base text-white mt-1">{client?.nombre || 'Propietario no encontrado'}</p>
-                    
-                    <div className="flex gap-4 text-xs text-gray-400">
-                      <p className="font-sans">Servicio: <span className="font-bold text-gray-300 capitalize">{res.servicioSol}</span></p>
-                      {res.observaciones && <p className="italic text-gray-500">&ldquo;{res.observaciones}&rdquo;</p>}
-                    </div>
-                  </div>
-
-                  {/* Actions & details right */}
-                  <div className="flex flex-wrap md:flex-nowrap items-center gap-3 justify-between md:justify-end">
-                    <div className="font-mono text-xs text-left md:text-right">
-                      <p className="text-white font-bold flex items-center gap-1 justify-start md:justify-end">
-                        <Clock className="w-3.5 h-3.5 text-brand-red shrink-0" />
-                        {res.hora} hs
-                      </p>
-                      <p className="text-[10px] text-gray-400">{res.fecha}</p>
-                    </div>
-
-                    {/* Button bar for states */}
-                    <div className="flex items-center gap-1">
-                      {/* WhatsApp trigger */}
-                      <button
-                        onClick={() => sendConfirmationWhatsApp(res)}
-                        title="Enviar confirmación por WhatsApp"
-                        className="p-2 bg-brand-card hover:bg-[#28A745]/10 text-[#28A745] hover:text-[#28A745] border border-gray-800 rounded-lg hover:border-[#28A745]/30"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                      </button>
-
-                      {/* State modifications */}
-                      <select
-                        value={res.estado}
-                        onChange={(e) => onUpdateReserva({ ...res, estado: e.target.value as any })}
-                        className="bg-brand-card border border-gray-800 rounded-lg px-2 py-1 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-brand-red font-semibold"
-                      >
-                        <option value="Reservado">⏱️ Reservado</option>
-                        <option value="En proceso">⚡ En proceso</option>
-                        <option value="Finalizado">✅ Finalizado</option>
-                        <option value="Cancelado">❌ Cancelado</option>
-                      </select>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => setReservaToDelete(res.id)}
-                        title="Borrar reserva"
-                        className="p-2 bg-brand-card hover:bg-brand-red/10 text-brand-red/80 hover:text-brand-red border border-gray-800 hover:border-brand-red/20 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {currentReservas().length === 0 && (
-              <div className="p-10 text-center bg-brand-card-light rounded-xl border border-dashed border-gray-800 text-gray-500">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50 text-brand-warning" />
-                <p className="text-sm font-semibold">No se registran reservas para la selección.</p>
-                <p className="text-xs mt-1">Utiliza los botones superiores del calendario o haz clic en "Crear Reserva" para programar citas de lavado.</p>
+          
+          {/* DAY VIEW TIMELINE GRID */}
+          {viewMode === 'Día' && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-gray-850 pb-2.5">
+                <Clock className="w-5 h-5 text-brand-red" />
+                <h3 className="font-display font-extrabold text-white">Cronograma del Día</h3>
               </div>
-            )}
-          </div>
+              
+              <div className="divide-y divide-gray-850 max-h-[500px] overflow-y-auto pr-1">
+                {['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map((hourStr) => {
+                  const hourPrefix = hourStr.split(':')[0];
+                  // Map reservations that match this slot or are within the 2-hour interval
+                  const listHourReservas = getReservasForDate(selectedDate).filter(r => {
+                    const resHour = parseInt(r.hora.split(':')[0]);
+                    const slotHour = parseInt(hourPrefix);
+                    return resHour === slotHour || (resHour === slotHour + 1);
+                  });
+
+                  return (
+                    <div key={hourStr} className="py-3 flex flex-col sm:flex-row sm:items-start gap-4">
+                      <div className="w-16 font-mono text-xs font-black text-brand-red flex items-center gap-1">
+                        <span>{hourStr}</span>
+                      </div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {listHourReservas.map(res => {
+                          const client = getCliente(res.clienteId);
+                          const car = getVehiculo(res.vehiculoMatricula);
+                          return (
+                            <div 
+                              key={res.id}
+                              onClick={() => setSelectedReserva(res)}
+                              className={`p-3 rounded-xl border flex flex-col justify-between gap-1.5 cursor-pointer transition ${getServiceColorStyle(res.servicioSol)}`}
+                            >
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="bg-white text-black font-mono font-black px-1 rounded text-[9px] plate-font">
+                                  {res.vehiculoMatricula}
+                                </span>
+                                <span className="text-[9px] font-bold truncate capitalize">{res.servicioSol}</span>
+                              </div>
+                              <p className="font-bold text-white text-xs truncate">{client?.nombre || 'Particular'}</p>
+                              <div className="flex items-center justify-between text-[9px] text-gray-400 mt-1">
+                                <span className={`px-1.5 py-0.5 rounded-full border ${getStatusStyle(res.estado)}`}>{res.estado}</span>
+                                {res.empleado && <span className="text-[10px] text-gray-300 font-mono flex items-center gap-1">👤 {res.empleado.split(' ')[0]}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {listHourReservas.length === 0 && (
+                          <span className="text-gray-600 italic text-[10px] py-1">Sin turnos agendados</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* WEEK VIEW PLANNER */}
+          {viewMode === 'Semana' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-7 gap-2 text-center border-b border-gray-850 pb-2">
+                {daysOfWeek.map((day, index) => {
+                  const dayStr = day.toISOString().split('T')[0];
+                  const isToday = dayStr === new Date().toISOString().split('T')[0];
+                  return (
+                    <div key={dayStr} className="space-y-1">
+                      <p className="text-[10px] font-mono text-gray-500 uppercase">
+                        {day.toLocaleDateString('es-ES', { weekday: 'short' })}
+                      </p>
+                      <p className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-display font-black text-xs ${
+                        isToday ? 'bg-brand-red text-white' : 'text-gray-300'
+                      }`}>
+                        {day.getDate()}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Weekly drops zone blocks */}
+              <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 max-h-[500px] overflow-y-auto pr-1">
+                {daysOfWeek.map(day => {
+                  const dayStr = day.toISOString().split('T')[0];
+                  const reservations = getReservasForDate(dayStr).sort((a,b) => a.hora.localeCompare(b.hora));
+
+                  return (
+                    <div 
+                      key={dayStr}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDropOnDay(e, dayStr)}
+                      className="p-2 bg-brand-card-light rounded-xl border border-gray-850/60 min-h-[140px] space-y-1.5 hover:border-brand-red/20 transition flex flex-col"
+                    >
+                      {reservations.map(res => {
+                        const client = getCliente(res.clienteId);
+                        return (
+                          <div
+                            key={res.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, res)}
+                            onClick={() => setSelectedReserva(res)}
+                            className={`p-2 rounded-lg border text-[10px] flex flex-col gap-1 cursor-grab active:cursor-grabbing transition ${getServiceColorStyle(res.servicioSol)}`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-mono font-black bg-white text-black px-1 rounded text-[8px] plate-font leading-none uppercase">
+                                {res.vehiculoMatricula}
+                              </span>
+                              <span className="font-bold font-mono text-[9px] text-white shrink-0">{res.hora}</span>
+                            </div>
+                            <p className="font-bold truncate text-white">{client?.nombre || 'Particular'}</p>
+                            <span className="text-[8px] text-gray-400 capitalize truncate">{res.servicioSol}</span>
+                          </div>
+                        );
+                      })}
+                      {reservations.length === 0 && (
+                        <p className="text-[9px] text-gray-650 italic text-center m-auto">Arrastrar aquí</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* MONTH VIEW GRID */}
+          {viewMode === 'Mes' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-gray-500 uppercase border-b border-gray-850 pb-2">
+                <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5">
+                {daysOfMonth.map((day, idx) => {
+                  if (!day) return <div key={`empty-${idx}`} className="bg-transparent h-16 sm:h-20"></div>;
+
+                  const dayStr = day.toISOString().split('T')[0];
+                  const isToday = dayStr === new Date().toISOString().split('T')[0];
+                  const reservations = getReservasForDate(dayStr);
+
+                  return (
+                    <div 
+                      key={dayStr}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDropOnDay(e, dayStr)}
+                      onClick={() => { setSelectedDate(dayStr); setViewMode('Día'); }}
+                      className={`p-1 bg-brand-card-light rounded-xl border cursor-pointer min-h-[64px] sm:min-h-[80px] flex flex-col justify-between hover:border-brand-red transition ${
+                        isToday ? 'border-brand-red bg-brand-red/5' : 'border-gray-850'
+                      }`}
+                    >
+                      <span className={`text-[10px] font-black font-display p-1 self-start rounded-md leading-none ${isToday ? 'text-brand-red' : 'text-gray-400'}`}>
+                        {day.getDate()}
+                      </span>
+
+                      {/* Display small dots or text for desktop */}
+                      <div className="space-y-1 overflow-hidden max-h-[48px] w-full">
+                        {reservations.slice(0, 3).map(res => (
+                          <div 
+                            key={res.id} 
+                            className="hidden sm:block text-[8px] px-1 py-0.5 rounded truncate font-mono uppercase bg-brand-red/20 text-brand-red font-bold"
+                          >
+                            {res.hora} - {res.vehiculoMatricula}
+                          </div>
+                        ))}
+                        {/* Mobile dots indicator */}
+                        <div className="flex flex-wrap gap-1 p-1 sm:hidden">
+                          {reservations.map(res => (
+                            <span key={res.id} className="w-1.5 h-1.5 bg-brand-red rounded-full"></span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* Modern custom modal for reservation delete confirmation */}
+      {/* Reservation Advanced Inspector/Drawer modal */}
+      {selectedReserva && (
+        <div className="fixed inset-0 z-40 bg-black/80 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp text-xs sm:text-sm">
+            <div className="flex items-center justify-between border-b border-gray-850 pb-3">
+              <h3 className="text-base font-display font-black text-white flex items-center gap-2">
+                <Info className="w-4.5 h-4.5 text-brand-red" />
+                Detalles del Turno
+              </h3>
+              <button onClick={() => setSelectedReserva(null)} className="text-gray-400 hover:text-white font-bold">✕</button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <p className="text-[10px] text-gray-500 font-mono">DUEÑO DEL VEHÍCULO</p>
+                  <p className="font-bold text-white text-base">{getCliente(selectedReserva.clienteId)?.nombre || 'Particular'}</p>
+                  <p className="text-gray-400">{getCliente(selectedReserva.clienteId)?.telefono}</p>
+                </div>
+
+                <div className="text-right">
+                  <span className="bg-white text-black text-xs font-mono font-black px-2.5 py-1 rounded tracking-widest plate-font uppercase inline-block shadow">
+                    {selectedReserva.vehiculoMatricula}
+                  </span>
+                  <p className="text-[10px] text-gray-500 font-mono mt-1">Patente Control</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3 bg-brand-card-light rounded-xl border border-gray-850">
+                <div>
+                  <p className="text-[9px] text-gray-500 font-mono">FECHA & HORA</p>
+                  <p className="text-white font-bold font-mono mt-0.5">{selectedReserva.fecha}</p>
+                  <p className="text-brand-red font-bold font-mono text-xs">{selectedReserva.hora} hs</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-gray-500 font-mono">SERVICIO SOLICITADO</p>
+                  <p className="text-white font-bold capitalize mt-0.5">{selectedReserva.servicioSol}</p>
+                </div>
+              </div>
+
+              {/* Assignment controls */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-gray-400 font-mono">LAVADOR ASIGNADO</p>
+                <select
+                  value={selectedReserva.empleado || 'Ninguno'}
+                  onChange={(e) => handleQuickEmployeeAssign(selectedReserva, e.target.value)}
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white font-bold text-xs"
+                >
+                  <option value="Ninguno">Sin asignar</option>
+                  {EMPLEADOS_WASHERS.map(emp => (
+                    <option key={emp} value={emp}>{emp}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status selectors */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-gray-400 font-mono">ESTADO DEL VEHÍCULO</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['Reservado', 'Recibido', 'Lavando', 'Secando', 'Finalizado', 'Entregado', 'Cancelado'] as ReservaEstado[]).map(st => {
+                    const isActive = selectedReserva.estado === st;
+                    return (
+                      <button
+                        key={st}
+                        onClick={() => handleQuickStatusChange(selectedReserva, st)}
+                        className={`py-1.5 rounded-lg border text-[9px] font-bold text-center transition ${
+                          isActive 
+                            ? 'bg-brand-red text-white border-brand-red shadow-lg' 
+                            : 'bg-brand-card-light border-gray-850 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {selectedReserva.observaciones && (
+                <div className="p-3 bg-[#FFC107]/5 border border-brand-warning/10 rounded-xl text-xs text-gray-350">
+                  <span className="font-bold text-white">Notas/Indicaciones:</span>
+                  <p className="mt-1 italic leading-relaxed">"{selectedReserva.observaciones}"</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 border-t border-gray-850 pt-4">
+              <button
+                onClick={() => sendConfirmationWhatsApp(selectedReserva)}
+                className="flex-1 bg-brand-success hover:bg-green-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Mandar WhatsApp
+              </button>
+              <button
+                onClick={() => {
+                  setReservaToDelete(selectedReserva.id);
+                  setSelectedReserva(null);
+                }}
+                className="bg-brand-red/10 hover:bg-brand-red/20 border border-brand-red/30 text-brand-red p-2.5 rounded-xl transition"
+                title="Eliminar Reserva"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setSelectedReserva(null)}
+                className="bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
       {reservaToDelete !== null && (
         <div id="confirm-delete-reserva-modal" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp">

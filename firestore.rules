@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprints
+    function isValidCliente(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.nombre is string && data.nombre.size() <= 200
+        && data.telefono is string && data.telefono.size() <= 40
+        && data.whatsapp is string && data.whatsapp.size() <= 40
+        && (!('direccion' in data) || (data.direccion is string && data.direccion.size() <= 300))
+        && (!('observaciones' in data) || (data.observaciones is string && data.observaciones.size() <= 1000))
+        && data.fechaRegistro is string && data.fechaRegistro.size() <= 20;
+    }
+
+    function isValidVehiculo(data) {
+      return data.matricula is string && data.matricula.size() <= 20
+        && data.marca is string && data.marca.size() <= 100
+        && data.modelo is string && data.modelo.size() <= 100
+        && data.color is string && data.color.size() <= 50
+        && data.anio is int
+        && data.clienteId is string && data.clienteId.size() <= 128
+        && data.fotosUrl is list && data.fotosUrl.size() <= 20;
+    }
+
+    function isValidReserva(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.clienteId is string && data.clienteId.size() <= 128
+        && data.vehiculoMatricula is string && data.vehiculoMatricula.size() <= 20
+        && data.fecha is string && data.fecha.size() <= 20
+        && data.hora is string && data.hora.size() <= 10
+        && data.servicioSol is string && data.servicioSol.size() <= 150
+        && data.estado in ['Reservado', 'Recibido', 'Lavando', 'Secando', 'Finalizado', 'Entregado', 'Cancelado']
+        && (!('observaciones' in data) || (data.observaciones is string && data.observaciones.size() <= 1000))
+        && (!('empleado' in data) || (data.empleado is string && data.empleado.size() <= 100));
+    }
+
+    function isValidServicio(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.fecha is string && data.fecha.size() <= 30
+        && data.clienteId is string && data.clienteId.size() <= 128
+        && data.vehiculoMatricula is string && data.vehiculoMatricula.size() <= 20
+        && data.tipo is string && data.tipo.size() <= 150
+        && (data.precio is int || data.precio is float)
+        && data.formaPago in ['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro']
+        && (!('observaciones' in data) || (data.observaciones is string && data.observaciones.size() <= 1000))
+        && data.fotosAntes is list && data.fotosAntes.size() <= 10
+        && data.fotosDespues is list && data.fotosDespues.size() <= 10;
+    }
+
+    function isValidGasto(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.fecha is string && data.fecha.size() <= 20
+        && data.categoria in ['Productos de limpieza', 'Combustible', 'Herramientas', 'Mantenimiento', 'Otros']
+        && data.descripcion is string && data.descripcion.size() <= 500
+        && (data.monto is int || data.monto is float);
+    }
+
+    function isValidCatalogoServicio(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.tipo is string && data.tipo.size() <= 150
+        && (data.precio is int || data.precio is float)
+        && (!('descripcion' in data) || (data.descripcion is string && data.descripcion.size() <= 500));
+    }
+
+    function isValidSettings(data) {
+      return data.adminPassword is string && data.adminPassword.size() <= 128
+        && data.businessWhatsapp is string && data.businessWhatsapp.size() <= 40;
+    }
+
+    // Rules matching each collection path
+    match /clientes/{clienteId} {
+      allow read: if true;
+      allow create, update: if isValidId(clienteId) && isValidCliente(incoming());
+      allow delete: if isValidId(clienteId);
+    }
+
+    match /vehiculos/{matricula} {
+      allow read: if true;
+      allow create, update: if isValidVehiculo(incoming());
+      allow delete: if true;
+    }
+
+    match /reservas/{reservaId} {
+      allow read: if true;
+      allow create, update: if isValidId(reservaId) && isValidReserva(incoming());
+      allow delete: if isValidId(reservaId);
+    }
+
+    match /servicios/{servicioId} {
+      allow read: if true;
+      allow create, update: if isValidId(servicioId) && isValidServicio(incoming());
+      allow delete: if isValidId(servicioId);
+    }
+
+    match /gastos/{gastoId} {
+      allow read: if true;
+      allow create, update: if isValidId(gastoId) && isValidGasto(incoming());
+      allow delete: if isValidId(gastoId);
+    }
+
+    match /serviciosCatalogo/{catalogoId} {
+      allow read: if true;
+      allow create, update: if isValidId(catalogoId) && isValidCatalogoServicio(incoming());
+      allow delete: if isValidId(catalogoId);
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update: if isValidId(docId) && isValidSettings(incoming());
+      allow delete: if isValidId(docId);
+    }
+  }
+}

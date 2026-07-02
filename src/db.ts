@@ -98,7 +98,7 @@ const initialReservas: Reserva[] = [
     fecha: getRelativeDate(0), // hoy
     hora: '10:00',
     servicioSol: 'Lavado premium',
-    estado: 'En proceso',
+    estado: 'Lavando',
     observaciones: 'Hacer hincapié en el tapizado.'
   },
   {

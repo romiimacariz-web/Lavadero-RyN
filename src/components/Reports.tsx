@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DatabaseState, ServicioRealizado, Gasto, Cliente } from '../types';
 import { 
   BarChart4, 
@@ -29,7 +29,7 @@ export default function Reports({ state }: ReportsProps) {
   const [selectedReportMonth, setSelectedReportMonth] = useState<number>(new Date().getMonth());
 
   // 1. SERVICES AGGREGATION (Most Sold Services)
-  const getMostSoldServices = () => {
+  const servicesStats = useMemo(() => {
     const counts: { [tipo: string]: { count: number; totalRev: number } } = {};
     state.servicios.forEach(s => {
       if (!counts[s.tipo]) {
@@ -44,12 +44,10 @@ export default function Reports({ state }: ReportsProps) {
       count: data.count,
       revenue: data.totalRev
     })).sort((a,b) => b.count - a.count);
-  };
-
-  const servicesStats = getMostSoldServices();
+  }, [state.servicios]);
 
   // 2. FREQUENT CUSTOMERS LEADERBOARD
-  const getFrequentCustomers = () => {
+  const frequentCustomers = useMemo(() => {
     const records: { [cid: string]: { count: number; totalSpent: number } } = {};
     state.servicios.forEach(s => {
       if (!records[s.clienteId]) {
@@ -69,12 +67,10 @@ export default function Reports({ state }: ReportsProps) {
         totalSpent: data.totalSpent
       };
     }).sort((a,b) => b.count - a.count).slice(0, 5);
-  };
-
-  const frequentCustomers = getFrequentCustomers();
+  }, [state.servicios, state.clientes]);
 
   // 3. EXPENSES BY CATEGORY
-  const getExpensesByCategory = () => {
+  const expenseCategories = useMemo(() => {
     const categories: { [cat: string]: number } = {
       'Productos de limpieza': 0,
       'Combustible': 0,
@@ -98,12 +94,12 @@ export default function Reports({ state }: ReportsProps) {
       monto: total,
       pct: totalExp > 0 ? Math.round((total / totalExp) * 100) : 0
     })).sort((a,b) => b.monto - a.monto);
-  };
-
-  const expenseCategories = getExpensesByCategory();
+  }, [state.gastos]);
 
   // 4. WEEK/DAY SALES CURVATURE (Sales over previous 7 days)
-  const getDailySalesCurve = () => {
+  const srvPriceForStats = (srv: ServicioRealizado) => srv.precio;
+
+  const dailySales = useMemo(() => {
     const list: { [date: string]: number } = {};
     // Populate past 7 days
     for (let i = 6; i >= 0; i--) {
@@ -125,14 +121,10 @@ export default function Reports({ state }: ReportsProps) {
       const label = `${parts[2]}/${parts[1]}`; // DD/MM format
       return { date, label, total };
     });
-  };
-
-  const srvPriceForStats = (srv: ServicioRealizado) => srv.precio;
-
-  const dailySales = getDailySalesCurve();
+  }, [state.servicios]);
 
   // 5. MONTHLY MARGIN SUMMARY
-  const getMonthlyMarginSummary = () => {
+  const monthlyMargin = useMemo(() => {
     const summary: { [monthStr: string]: { incomes: number; expenses: number } } = {};
     
     // Process services for past months
@@ -168,9 +160,7 @@ export default function Reports({ state }: ReportsProps) {
         net: data.incomes - data.expenses
       };
     }).sort((a,b) => a.key.localeCompare(b.key));
-  };
-
-  const monthlyMargin = getMonthlyMarginSummary();
+  }, [state.servicios, state.gastos]);
 
   // 6. SPREADSHEET EXPORTER (EXCEL ENGINE USING UTF-8 CSV WITH MULTI-SHEET DECORATOR)
   const handleExportExcel = () => {
@@ -202,6 +192,38 @@ export default function Reports({ state }: ReportsProps) {
     csvContent += "ID,Fecha,Categoria,Monto,Descripcion\n";
     state.gastos.forEach(g => {
       csvContent += `"${g.id}","${g.fecha}","${g.categoria}",${g.monto},"${g.descripcion}"\n`;
+    });
+    csvContent += "\n";
+
+    // SECTION 5: VEHICULOS
+    csvContent += "--- SHEET: VEHICULOS REGISTRADOS ---\n";
+    csvContent += "Patente/Matricula,Marca,Modelo,Color,Anio,Cliente ID,Kilometros,Proximo Mantenimiento\n";
+    state.vehiculos.forEach(v => {
+      csvContent += `"${v.matricula}","${v.marca}","${v.modelo}","${v.color}",${v.anio},"${v.clienteId}",${v.kilometros || '0'},"${v.proximoMantenimiento || ''}"\n`;
+    });
+    csvContent += "\n";
+
+    // SECTION 6: SERVICIOS MAS VENDIDOS
+    csvContent += "--- SHEET: SERVICIOS MAS VENDIDOS ---\n";
+    csvContent += "Servicio,Cantidad Vendida,Total Recaudado\n";
+    servicesStats.forEach(ss => {
+      csvContent += `"${ss.name}",${ss.count},${ss.revenue}\n`;
+    });
+    csvContent += "\n";
+
+    // SECTION 7: CLIENTES FRECUENTES
+    csvContent += "--- SHEET: CLIENTES FRECUENTES ---\n";
+    csvContent += "Nombre,Telefono,Cantidad de Visitas,Total Invertido\n";
+    frequentCustomers.forEach(fc => {
+      csvContent += `"${fc.nombre}","${fc.telefono}",${fc.count},${fc.totalSpent}\n`;
+    });
+    csvContent += "\n";
+
+    // SECTION 8: MARGENES MENSUALES
+    csvContent += "--- SHEET: HISTORIAL DE MARGENES MENSUALES ---\n";
+    csvContent += "Mes/Anio,Ingresos Totales,Gastos Totales,Ganancia Neta\n";
+    monthlyMargin.forEach(mm => {
+      csvContent += `"${mm.label}",${mm.incomes},${mm.expenses},${mm.net}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "cliente": {
+      "title": "Cliente",
+      "description": "Un cliente registrado en el lavadero",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID único del cliente" },
+        "nombre": { "type": "string", "description": "Nombre completo" },
+        "telefono": { "type": "string", "description": "Teléfono de contacto" },
+        "whatsapp": { "type": "string", "description": "Número de WhatsApp" },
+        "direccion": { "type": "string", "description": "Dirección opcional" },
+        "observaciones": { "type": "string", "description": "Notas y observaciones del cliente" },
+        "fechaRegistro": { "type": "string", "description": "Fecha de registro en formato YYYY-MM-DD" }
+      },
+      "required": ["id", "nombre", "telefono", "whatsapp", "fechaRegistro"]
+    },
+    "vehiculo": {
+      "title": "Vehiculo",
+      "description": "Un vehículo perteneciente a un cliente",
+      "type": "object",
+      "properties": {
+        "matricula": { "type": "string", "description": "Patente o matrícula del vehículo" },
+        "marca": { "type": "string", "description": "Marca del vehículo" },
+        "modelo": { "type": "string", "description": "Modelo del vehículo" },
+        "color": { "type": "string", "description": "Color" },
+        "anio": { "type": "integer", "description": "Año de fabricación" },
+        "clienteId": { "type": "string", "description": "ID del cliente propietario" },
+        "fotosUrl": { "type": "array", "description": "URLs de fotos del vehículo" }
+      },
+      "required": ["matricula", "marca", "modelo", "color", "anio", "clienteId"]
+    },
+    "reserva": {
+      "title": "Reserva",
+      "description": "Una reserva o turno programado",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID de la reserva" },
+        "clienteId": { "type": "string", "description": "ID del cliente" },
+        "vehiculoMatricula": { "type": "string", "description": "Matrícula del vehículo" },
+        "fecha": { "type": "string", "description": "Fecha del turno (YYYY-MM-DD)" },
+        "hora": { "type": "string", "description": "Hora del turno (HH:MM)" },
+        "servicioSol": { "type": "string", "description": "Nombre del servicio solicitado" },
+        "estado": { "type": "string", "enum": ["Reservado", "En proceso", "Finalizado", "Cancelado"], "description": "Estado de la reserva" },
+        "observaciones": { "type": "string", "description": "Observaciones para la reserva" }
+      },
+      "required": ["id", "clienteId", "vehiculoMatricula", "fecha", "hora", "servicioSol", "estado"]
+    },
+    "servicio": {
+      "title": "ServicioRealizado",
+      "description": "Un servicio completado y facturado",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID del servicio realizado" },
+        "fecha": { "type": "string", "description": "Fecha y hora de realización (YYYY-MM-DD HH:MM)" },
+        "clienteId": { "type": "string", "description": "ID del cliente" },
+        "vehiculoMatricula": { "type": "string", "description": "Matrícula del vehículo" },
+        "tipo": { "type": "string", "description": "Tipo de servicio realizado" },
+        "precio": { "type": "number", "description": "Precio cobrado" },
+        "formaPago": { "type": "string", "enum": ["Efectivo", "Transferencia", "Tarjeta de Crédito", "Tarjeta de Débito", "Mercado Pago", "Otro"], "description": "Forma de pago" },
+        "observaciones": { "type": "string", "description": "Notas sobre el servicio" },
+        "fotosAntes": { "type": "array", "description": "Fotos antes de realizar el servicio" },
+        "fotosDespues": { "type": "array", "description": "Fotos después de realizar el servicio" }
+      },
+      "required": ["id", "fecha", "clienteId", "vehiculoMatricula", "tipo", "precio", "formaPago"]
+    },
+    "gasto": {
+      "title": "Gasto",
+      "description": "Un gasto operativo registrado",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID del gasto" },
+        "fecha": { "type": "string", "description": "Fecha del gasto (YYYY-MM-DD)" },
+        "categoria": { "type": "string", "enum": ["Productos de limpieza", "Combustible", "Herramientas", "Mantenimiento", "Otros"], "description": "Categoría de gasto" },
+        "descripcion": { "type": "string", "description": "Detalle o descripción del gasto" },
+        "monto": { "type": "number", "description": "Monto del gasto" }
+      },
+      "required": ["id", "fecha", "categoria", "descripcion", "monto"]
+    },
+    "catalogoServicio": {
+      "title": "CatalogoServicio",
+      "description": "Un servicio en el catálogo de ofertas y precios",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID de servicio en el catálogo" },
+        "tipo": { "type": "string", "description": "Nombre del tipo de servicio" },
+        "precio": { "type": "number", "description": "Precio establecido" },
+        "descripcion": { "type": "string", "description": "Breve descripción" }
+      },
+      "required": ["id", "tipo", "precio"]
+    },
+    "settings": {
+      "title": "Configuracion",
+      "description": "Configuraciones generales de la empresa",
+      "type": "object",
+      "properties": {
+        "adminPassword": { "type": "string", "description": "Contraseña de administración" },
+        "businessWhatsapp": { "type": "string", "description": "WhatsApp del negocio" }
+      },
+      "required": ["adminPassword", "businessWhatsapp"]
+    }
+  },
+  "firestore": {
+    "clientes/{clienteId}": {
+      "schema": "cliente",
+      "description": "Colección de clientes registrados"
+    },
+    "vehiculos/{matricula}": {
+      "schema": "vehiculo",
+      "description": "Colección de vehículos"
+    },
+    "reservas/{reservaId}": {
+      "schema": "reserva",
+      "description": "Colección de reservas de turnos"
+    },
+    "servicios/{servicioId}": {
+      "schema": "servicio",
+      "description": "Colección de servicios realizados"
+    },
+    "gastos/{gastoId}": {
+      "schema": "gasto",
+      "description": "Colección de gastos operativos"
+    },
+    "serviciosCatalogo/{catalogoId}": {
+      "schema": "catalogoServicio",
+      "description": "Colección de catálogo de servicios"
+    },
+    "settings/{docId}": {
+      "schema": "settings",
+      "description": "Configuraciones globales"
+    }
+  }
+}

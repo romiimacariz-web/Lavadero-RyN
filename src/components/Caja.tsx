@@ -3,20 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { DatabaseState, Gasto, GastoCategoria } from '../types';
+import React, { useState, useMemo } from 'react';
+import { DatabaseState, Gasto, GastoCategoria, FormaPago } from '../types';
 import { 
   DollarSign, 
   Plus, 
   Trash2, 
   TrendingUp, 
   TrendingDown, 
-  Activity, 
   ShoppingBag, 
   Calendar,
-  AlertCircle,
   Clock,
-  Sparkles
+  Sparkles,
+  Layers,
+  CheckCircle2,
+  Share2,
+  Copy,
+  Printer,
+  ChevronDown
 } from 'lucide-react';
 
 interface CajaProps {
@@ -37,7 +41,7 @@ export default function Caja({
   state, 
   onAddGasto, 
   onDeleteGasto 
-}: CajaProps) {
+ }: CajaProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState<Gasto | null>(null);
   const [categoria, setCategoria] = useState<GastoCategoria>('Productos de limpieza');
@@ -45,24 +49,58 @@ export default function Caja({
   const [monto, setMonto] = useState<number>(1000);
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
 
+  // Daily Closing Modal States
+  const [showClosingModal, setShowClosingModal] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+
   // Calculations
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   // 1. DAILY (Diario)
-  const incomingToday = state.servicios
-    .filter(s => s.fecha.startsWith(todayStr))
-    .reduce((acc, curr) => acc + curr.precio, 0);
+  const incomingToday = useMemo(() => {
+    return state.servicios
+      .filter(s => s.fecha.startsWith(todayStr))
+      .reduce((acc, curr) => acc + curr.precio, 0);
+  }, [state.servicios, todayStr]);
 
-  const outgoingToday = state.gastos
-    .filter(g => g.fecha === todayStr)
-    .reduce((acc, curr) => acc + curr.monto, 0);
+  const outgoingToday = useMemo(() => {
+    return state.gastos
+      .filter(g => g.fecha === todayStr)
+      .reduce((acc, curr) => acc + curr.monto, 0);
+  }, [state.gastos, todayStr]);
 
-  const netToday = incomingToday - outgoingToday;
+  const netToday = useMemo(() => incomingToday - outgoingToday, [incomingToday, outgoingToday]);
+
+  // Payment method breakdown for Today
+  const paymentMethodsToday = useMemo(() => {
+    return state.servicios
+      .filter(s => s.fecha.startsWith(todayStr))
+      .reduce((acc, curr) => {
+        const method = curr.formaPago || 'Otro';
+        acc[method] = (acc[method] || 0) + curr.precio;
+        return acc;
+      }, {} as Record<string, number>);
+  }, [state.servicios, todayStr]);
+
+  // Payment method breakdown for Month
+  const currentMonth = useMemo(() => new Date().getMonth(), []);
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const paymentMethodsMonth = useMemo(() => {
+    return state.servicios
+      .filter(s => {
+        const sDate = new Date(s.fecha.split(' ')[0]);
+        return sDate.getMonth() === currentMonth && sDate.getFullYear() === currentYear;
+      })
+      .reduce((acc, curr) => {
+        const method = curr.formaPago || 'Otro';
+        acc[method] = (acc[method] || 0) + curr.precio;
+        return acc;
+      }, {} as Record<string, number>);
+  }, [state.servicios, currentMonth, currentYear]);
 
   // 2. WEEKLY (Semanal)
-  const getWeeklyStats = () => {
+  const weeklyStats = useMemo(() => {
     const today = new Date();
-    // Get start of week (last Monday)
     const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1);
     const startOfWeek = new Date(today.setDate(diff));
@@ -79,16 +117,10 @@ export default function Caja({
     }).reduce((acc, curr) => acc + curr.monto, 0);
 
     return { Incomes: weekIncomes, Expenses: weekExpenses, Net: weekIncomes - weekExpenses };
-  };
-
-  const weeklyStats = getWeeklyStats();
+  }, [state.servicios, state.gastos]);
 
   // 3. MONTHLY (Mensual)
-  const getMonthlyStats = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
+  const monthlyStats = useMemo(() => {
     const monthIncomes = state.servicios.filter(s => {
       const sDate = new Date(s.fecha.split(' ')[0]);
       return sDate.getMonth() === currentMonth && sDate.getFullYear() === currentYear;
@@ -100,9 +132,7 @@ export default function Caja({
     }).reduce((acc, curr) => acc + curr.monto, 0);
 
     return { Incomes: monthIncomes, Expenses: monthExpenses, Net: monthIncomes - monthExpenses };
-  };
-
-  const monthlyStats = getMonthlyStats();
+  }, [state.servicios, state.gastos, currentMonth, currentYear]);
 
   const handleExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +150,55 @@ export default function Caja({
     setMonto(1000);
   };
 
+  // Generate closing receipt text
+  const generateClosingText = () => {
+    const nowStr = new Date().toLocaleString('es-AR');
+    let text = `=================================\n`;
+    text += `   CIERRE DE CAJA - LAVADERO RyN   \n`;
+    text += `=================================\n`;
+    text += `Fecha de Cierre: ${nowStr}\n`;
+    text += `---------------------------------\n`;
+    text += `INGRESOS TOTALES (HOY): $${incomingToday.toLocaleString('es-AR')}\n`;
+    text += `EGRESOS TOTALES (HOY):  $${outgoingToday.toLocaleString('es-AR')}\n`;
+    text += `GANANCIA NETA DIARIA:   $${netToday.toLocaleString('es-AR')}\n`;
+    text += `---------------------------------\n`;
+    text += `DETALLE DE PAGOS RECIBIDOS:\n`;
+    
+    const methods: FormaPago[] = ['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro'];
+    methods.forEach(m => {
+      const total = paymentMethodsToday[m] || 0;
+      if (total > 0) {
+        text += `• ${m}: $${total.toLocaleString('es-AR')}\n`;
+      }
+    });
+
+    text += `---------------------------------\n`;
+    text += `DETALLE DE GASTOS HOY:\n`;
+    const todayExpenses = state.gastos.filter(g => g.fecha === todayStr);
+    if (todayExpenses.length === 0) {
+      text += `Sin egresos registrados.\n`;
+    } else {
+      todayExpenses.forEach(g => {
+        text += `• ${g.descripcion} (${g.categoria}): $${g.monto.toLocaleString('es-AR')}\n`;
+      });
+    }
+    text += `=================================\n`;
+    text += `¡Cierre del día realizado con éxito!`;
+    return text;
+  };
+
+  const copyToClipboard = () => {
+    const text = generateClosingText();
+    navigator.clipboard.writeText(text);
+    setHasCopied(true);
+    setTimeout(() => setHasCopied(false), 2000);
+  };
+
+  const handleSendClosingWhatsApp = () => {
+    const formattedText = encodeURIComponent(generateClosingText());
+    window.open(`https://wa.me/?text=${formattedText}`, '_blank');
+  };
+
   return (
     <div className="space-y-6">
       {/* Caja Header */}
@@ -130,17 +209,26 @@ export default function Caja({
           </div>
           <div>
             <h2 className="text-xl font-display font-extrabold text-white">Flujos de Caja Operativa</h2>
-            <p className="text-xs text-gray-400">Control de ingresos y egresos para balances netos</p>
+            <p className="text-xs text-gray-400">Control de ingresos, egresos y arqueo de caja diario</p>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsAdding(true)}
-          className="bg-brand-red hover:bg-red-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 self-start md:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Registrar Gasto
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowClosingModal(true)}
+            className="bg-brand-success/15 hover:bg-brand-success/25 border border-brand-success/40 text-brand-success font-bold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Cierre de Caja
+          </button>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="bg-brand-red hover:bg-red-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Registrar Gasto
+          </button>
+        </div>
       </div>
 
       {/* Auto Calculation Cards Grid */}
@@ -221,6 +309,47 @@ export default function Caja({
         </div>
       </div>
 
+      {/* Income Breakdown by Payment Method */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Daily Breakdown */}
+        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
+          <h3 className="text-sm font-display font-extrabold text-white flex items-center gap-2 border-b border-gray-850 pb-2">
+            <Layers className="w-4 h-4 text-brand-red" />
+            Métodos de Pago - Facturación de Hoy
+          </h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            {['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro'].map(method => {
+              const total = paymentMethodsToday[method] || 0;
+              return (
+                <div key={method} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center">
+                  <span className="text-gray-400 font-medium">{method}</span>
+                  <span className="font-mono text-white font-bold">${total.toLocaleString('es-AR')}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Monthly Breakdown */}
+        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
+          <h3 className="text-sm font-display font-extrabold text-white flex items-center gap-2 border-b border-gray-850 pb-2">
+            <Layers className="w-4 h-4 text-brand-red" />
+            Métodos de Pago - Facturación Mensual
+          </h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            {['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro'].map(method => {
+              const total = paymentMethodsMonth[method] || 0;
+              return (
+                <div key={method} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center">
+                  <span className="text-gray-400 font-medium">{method}</span>
+                  <span className="font-mono text-white font-bold">${total.toLocaleString('es-AR')}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Register Expense collapsible form */}
         {isAdding && (
@@ -237,7 +366,7 @@ export default function Caja({
                   type="text"
                   required
                   placeholder="Ej: Insumos de cera, mantenimiento bomba..."
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none"
+                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                 />
@@ -262,7 +391,7 @@ export default function Caja({
                   <input
                     type="number"
                     required
-                    min="10"
+                    min="1"
                     placeholder="Monto gastado..."
                     className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-brand-red font-mono font-bold focus:outline-none"
                     value={monto}
@@ -308,11 +437,11 @@ export default function Caja({
             Egresos Operativos Registrados ({state.gastos.length})
           </h3>
 
-          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1 text-xs">
             {state.gastos
               .sort((a,b) => b.fecha.localeCompare(a.fecha))
               .map(gst => (
-                <div key={gst.id} className="p-3 bg-brand-card-light rounded-xl border border-gray-800/80 flex justify-between items-center text-xs hover:border-gray-750 transition">
+                <div key={gst.id} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center hover:border-gray-800 transition">
                   <div className="space-y-1">
                     <p className="font-semibold text-white text-sm">{gst.descripcion}</p>
                     <div className="flex items-center gap-2 flex-wrap text-[10px] text-gray-400">
@@ -342,16 +471,68 @@ export default function Caja({
               ))}
 
             {state.gastos.length === 0 && (
-              <p className="text-xs text-center text-gray-550 italic py-6">No se registran egresos operativos cargados.</p>
+              <p className="text-xs text-center text-gray-500 italic py-6">No se registran egresos operativos cargados.</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Modern custom modal for expense deletion */}
+      {/* Daily Closing Dialog Modal */}
+      {showClosingModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp text-xs sm:text-sm">
+            <div className="flex items-center justify-between border-b border-gray-850 pb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-brand-success" />
+                <h3 className="text-lg font-display font-black text-white">Arqueo & Cierre de Caja Diario</h3>
+              </div>
+              <button 
+                onClick={() => setShowClosingModal(false)}
+                className="text-gray-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Receipt visualization */}
+            <div className="bg-black/40 border border-gray-850 rounded-xl p-4 font-mono text-gray-300 space-y-1 text-xs whitespace-pre-wrap select-all">
+              {generateClosingText()}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="flex-1 bg-brand-card border border-gray-750 hover:border-brand-red/40 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition"
+              >
+                <Copy className="w-4 h-4 text-brand-red" />
+                {hasCopied ? '¡Copiado!' : 'Copiar Reporte'}
+              </button>
+              <button
+                type="button"
+                onClick={handleSendClosingWhatsApp}
+                className="flex-1 bg-brand-success hover:bg-green-700 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition"
+              >
+                <Share2 className="w-4 h-4" />
+                Mandar por WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowClosingModal(false)}
+                className="flex-1 bg-brand-card-light border border-gray-800 text-gray-400 hover:text-white font-bold text-xs py-3 rounded-xl transition"
+              >
+                Cerrar Ventana
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
       {gastoToDelete !== null && (
         <div id="confirm-delete-gasto-modal" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp">
+          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl">
             <div className="text-center space-y-2">
               <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
                 <Trash2 className="w-6 h-6" />

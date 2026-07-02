@@ -3,9 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getInitialState, saveState } from './db';
 import { DatabaseState, Cliente, Vehiculo, Reserva, ServicioRealizado, Gasto, UserRole, ReservaEstado, FormaPago, CatalogoServicio } from './types';
+import { db } from './firebase';
+import { collection, doc, onSnapshot, writeBatch } from 'firebase/firestore';
+import {
+  OperationType,
+  testFirestoreConnection,
+  seedFirestoreIfEmpty,
+  handleFirestoreError,
+  createOrUpdateCliente,
+  deleteClienteFromDb,
+  createOrUpdateVehiculo,
+  deleteVehiculoFromDb,
+  createOrUpdateReserva,
+  deleteReservaFromDb,
+  createOrUpdateServicio,
+  deleteServicioFromDb,
+  saveCatalogoToDb,
+  createOrUpdateGasto,
+  deleteGastoFromDb,
+  saveSettingsToDb
+} from './firebaseService';
 
 // Components
 import Dashboard from './components/Dashboard';
@@ -65,7 +85,73 @@ export default function App() {
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminPasswordError, setAdminPasswordError] = useState<string | null>(null);
 
-  // Persistence handler
+  // Synchronize with Firestore on component mount
+  useEffect(() => {
+    const initFirebase = async () => {
+      await testFirestoreConnection();
+      await seedFirestoreIfEmpty(getInitialState());
+    };
+    initFirebase();
+
+    const unsubClientes = onSnapshot(collection(db, 'clientes'), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as Cliente);
+      setDbState(prev => ({ ...prev, clientes: list }));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'clientes'));
+
+    const unsubVehiculos = onSnapshot(collection(db, 'vehiculos'), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as Vehiculo);
+      setDbState(prev => ({ ...prev, vehiculos: list }));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'vehiculos'));
+
+    const unsubReservas = onSnapshot(collection(db, 'reservas'), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as Reserva);
+      setDbState(prev => ({ ...prev, reservas: list }));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'reservas'));
+
+    const unsubServicios = onSnapshot(collection(db, 'servicios'), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as ServicioRealizado);
+      setDbState(prev => ({ ...prev, servicios: list }));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'servicios'));
+
+    const unsubGastos = onSnapshot(collection(db, 'gastos'), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as Gasto);
+      setDbState(prev => ({ ...prev, gastos: list }));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'gastos'));
+
+    const unsubCatalogo = onSnapshot(collection(db, 'serviciosCatalogo'), (snap) => {
+      const list = snap.docs.map(doc => doc.data() as CatalogoServicio);
+      setDbState(prev => ({ ...prev, serviciosCatalogo: list }));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'serviciosCatalogo'));
+
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'config'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setDbState(prev => ({ 
+          ...prev, 
+          adminPassword: data.adminPassword || 'ryn123',
+          businessWhatsapp: data.businessWhatsapp || '5491123456789',
+          nombreNegocio: data.nombreNegocio || 'Lavadero RyN',
+          logoUrl: data.logoUrl || '/src/assets/images/lavadero_ryn_logo_1782222462483.jpg',
+          direccionNegocio: data.direccionNegocio || 'Av. San Martín 1500',
+          instagram: data.instagram || 'lavaderoryn',
+          facebook: data.facebook || 'lavaderorynoficial',
+          horarios: data.horarios || 'Lunes a Sábado de 08:00 a 20:00'
+        }));
+      }
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/config'));
+
+    return () => {
+      unsubClientes();
+      unsubVehiculos();
+      unsubReservas();
+      unsubServicios();
+      unsubGastos();
+      unsubCatalogo();
+      unsubSettings();
+    };
+  }, []);
+
+  // Persistence handler for local UI settings/state
   const updateStateAndPersist = (updatedFields: Partial<DatabaseState>) => {
     const newState = { ...dbState, ...updatedFields };
     setDbState(newState);
@@ -81,19 +167,104 @@ export default function App() {
       return;
     }
 
-    // If we transition to Empleado and are on reports, cash or prices, reset to Inicio
-    if (role === 'Empleado' && (activeTab === 'Caja' || activeTab === 'Reportes' || activeTab === 'Precios')) {
+    // If we transition to Empleado and are on reports, cash or config, reset to Inicio
+    if (role === 'Empleado' && (activeTab === 'Caja' || activeTab === 'Reportes' || activeTab === 'Configuración')) {
       setActiveTab('Inicio');
     }
     updateStateAndPersist({ currentRole: role });
   };
 
   const handleUpdatePassword = (newPassword: string) => {
-    updateStateAndPersist({ adminPassword: newPassword });
+    saveSettingsToDb(
+      newPassword, 
+      dbState.businessWhatsapp,
+      dbState.nombreNegocio,
+      dbState.logoUrl,
+      dbState.direccionNegocio,
+      dbState.instagram,
+      dbState.facebook,
+      dbState.horarios
+    );
   };
 
   const handleUpdateBusinessWhatsapp = (newWhatsapp: string) => {
-    updateStateAndPersist({ businessWhatsapp: newWhatsapp });
+    saveSettingsToDb(
+      dbState.adminPassword, 
+      newWhatsapp,
+      dbState.nombreNegocio,
+      dbState.logoUrl,
+      dbState.direccionNegocio,
+      dbState.instagram,
+      dbState.facebook,
+      dbState.horarios
+    );
+  };
+
+  const handleUpdateBusinessConfig = (
+    nombre: string,
+    logo: string,
+    direccion: string,
+    insta: string,
+    fb: string,
+    horas: string
+  ) => {
+    saveSettingsToDb(
+      dbState.adminPassword,
+      dbState.businessWhatsapp,
+      nombre,
+      logo,
+      direccion,
+      insta,
+      fb,
+      horas
+    );
+  };
+
+  const handleRestoreBackup = async (backupData: any): Promise<boolean> => {
+    try {
+      const batch = writeBatch(db);
+      
+      // Clean target collections if the backup is loaded
+      if (Array.isArray(backupData.clientes)) {
+        backupData.clientes.forEach((c: any) => {
+          batch.set(doc(db, 'clientes', c.id), c);
+        });
+      }
+      if (Array.isArray(backupData.vehiculos)) {
+        backupData.vehiculos.forEach((v: any) => {
+          batch.set(doc(db, 'vehiculos', v.matricula), v);
+        });
+      }
+      if (Array.isArray(backupData.reservas)) {
+        backupData.reservas.forEach((r: any) => {
+          batch.set(doc(db, 'reservas', r.id), r);
+        });
+      }
+      if (Array.isArray(backupData.servicios)) {
+        backupData.servicios.forEach((s: any) => {
+          batch.set(doc(db, 'servicios', s.id), s);
+        });
+      }
+      if (Array.isArray(backupData.gastos)) {
+        backupData.gastos.forEach((g: any) => {
+          batch.set(doc(db, 'gastos', g.id), g);
+        });
+      }
+      if (Array.isArray(backupData.serviciosCatalogo)) {
+        backupData.serviciosCatalogo.forEach((sc: any) => {
+          batch.set(doc(db, 'serviciosCatalogo', sc.id), sc);
+        });
+      }
+      if (backupData.settings) {
+        batch.set(doc(db, 'settings', 'config'), backupData.settings);
+      }
+      
+      await batch.commit();
+      return true;
+    } catch (err) {
+      console.error('Restore backup error: ', err);
+      return false;
+    }
   };
 
   // CLIENTS ACTIONS
@@ -105,35 +276,28 @@ export default function App() {
       id: newId,
       fechaRegistro: today
     };
-    const updated = [...dbState.clientes, newCliente];
-    updateStateAndPersist({ clientes: updated });
+    createOrUpdateCliente(newCliente);
   };
 
   const handleUpdateCliente = (updatedCli: Cliente) => {
-    const updated = dbState.clientes.map(c => c.id === updatedCli.id ? updatedCli : c);
-    updateStateAndPersist({ clientes: updated });
+    createOrUpdateCliente(updatedCli);
   };
 
   const handleDeleteCliente = (id: string) => {
-    const filtered = dbState.clientes.filter(c => c.id !== id);
-    // Cascade delete reservations, let's keep them or filter.
-    updateStateAndPersist({ clientes: filtered });
+    deleteClienteFromDb(id);
   };
 
   // VEHICLES ACTIONS
   const handleAddVehiculo = (veh: Vehiculo) => {
-    const updated = [...dbState.vehiculos, veh];
-    updateStateAndPersist({ vehiculos: updated });
+    createOrUpdateVehiculo(veh);
   };
 
   const handleUpdateVehiculo = (updatedVeh: Vehiculo) => {
-    const updated = dbState.vehiculos.map(v => v.matricula === updatedVeh.matricula ? updatedVeh : v);
-    updateStateAndPersist({ vehiculos: updated });
+    createOrUpdateVehiculo(updatedVeh);
   };
 
   const handleDeleteVehiculo = (plate: string) => {
-    const filtered = dbState.vehiculos.filter(v => v.matricula !== plate);
-    updateStateAndPersist({ vehiculos: filtered });
+    deleteVehiculoFromDb(plate);
   };
 
   // RESERVATIONS BOOKINGS ACTIONS
@@ -143,23 +307,22 @@ export default function App() {
       ...resData,
       id: newId
     };
-    const updated = [...dbState.reservas, newRes];
-    updateStateAndPersist({ reservas: updated });
+    createOrUpdateReserva(newRes);
   };
 
   const handleUpdateReserva = (updatedRes: Reserva) => {
-    const updated = dbState.reservas.map(r => r.id === updatedRes.id ? updatedRes : r);
-    updateStateAndPersist({ reservas: updated });
+    createOrUpdateReserva(updatedRes);
   };
 
   const handleUpdateReservaState = (reservaId: string, newState: ReservaEstado) => {
-    const updated = dbState.reservas.map(r => r.id === reservaId ? { ...r, estado: newState } : r);
-    updateStateAndPersist({ reservas: updated });
+    const res = dbState.reservas.find(r => r.id === reservaId);
+    if (res) {
+      createOrUpdateReserva({ ...res, estado: newState });
+    }
   };
 
   const handleDeleteReserva = (id: string) => {
-    const filtered = dbState.reservas.filter(r => r.id !== id);
-    updateStateAndPersist({ reservas: filtered });
+    deleteReservaFromDb(id);
   };
 
   // COMPLETED SERVICES ACTIONS
@@ -170,27 +333,22 @@ export default function App() {
       id: newId
     };
     // If this service matches a reservation for the plate, mark it finalized!
-    const updatedReservas = dbState.reservas.map(r => 
-      r.vehiculoMatricula.toUpperCase() === srvData.vehiculoMatricula.toUpperCase() && r.estado !== 'Cancelado'
-        ? { ...r, estado: 'Finalizado' as ReservaEstado }
-        : r
-    );
-
-    const updatedServices = [...dbState.servicios, newSrv];
-    updateStateAndPersist({ 
-      servicios: updatedServices,
-      reservas: updatedReservas
+    dbState.reservas.forEach(r => {
+      if (r.vehiculoMatricula.toUpperCase() === srvData.vehiculoMatricula.toUpperCase() && r.estado !== 'Cancelado') {
+        createOrUpdateReserva({ ...r, estado: 'Finalizado' });
+      }
     });
+
+    createOrUpdateServicio(newSrv);
   };
 
   const handleDeleteServicio = (id: string) => {
-    const filtered = dbState.servicios.filter(s => s.id !== id);
-    updateStateAndPersist({ servicios: filtered });
+    deleteServicioFromDb(id);
   };
 
   // SERVICES CATALOG ACTIONS
   const handleUpdateCatalogo = (newCatalogo: CatalogoServicio[]) => {
-    updateStateAndPersist({ serviciosCatalogo: newCatalogo });
+    saveCatalogoToDb(newCatalogo);
   };
 
   // EXPENSES GASTOS ACTIONS
@@ -200,13 +358,11 @@ export default function App() {
       ...gstData,
       id: newId
     };
-    const updated = [...dbState.gastos, newGst];
-    updateStateAndPersist({ gastos: updated });
+    createOrUpdateGasto(newGst);
   };
 
   const handleDeleteGasto = (id: string) => {
-    const filtered = dbState.gastos.filter(g => g.id !== id);
-    updateStateAndPersist({ gastos: filtered });
+    deleteGastoFromDb(id);
   };
 
   // SELF SERVICE CUSTOMER ACTION CHANGER
@@ -230,7 +386,6 @@ export default function App() {
     );
     let finalClienteId = '';
     
-    const updatedClientes = [...dbState.clientes];
     if (client) {
       finalClienteId = client.id;
     } else {
@@ -242,13 +397,12 @@ export default function App() {
         whatsapp: clienteTelefono,
         fechaRegistro: new Date().toISOString().split('T')[0]
       };
-      updatedClientes.push(newCliente);
+      createOrUpdateCliente(newCliente);
       finalClienteId = newClientId;
     }
 
     const cleanMatricula = vehiculoMatricula.toUpperCase().replace(/\s+/g, '');
     let vehicle = dbState.vehiculos.find(v => v.matricula.toUpperCase() === cleanMatricula);
-    const updatedVehiculos = [...dbState.vehiculos];
     if (!vehicle) {
       const newVeh: Vehiculo = {
         matricula: cleanMatricula,
@@ -259,7 +413,7 @@ export default function App() {
         clienteId: finalClienteId,
         fotosUrl: []
       };
-      updatedVehiculos.push(newVeh);
+      createOrUpdateVehiculo(newVeh);
     }
 
     const newResId = `res-${Date.now()}`;
@@ -274,13 +428,7 @@ export default function App() {
       observaciones: observaciones
     };
     
-    const updatedReservas = [...dbState.reservas, newRes];
-
-    updateStateAndPersist({
-      clientes: updatedClientes,
-      vehiculos: updatedVehiculos,
-      reservas: updatedReservas
-    });
+    createOrUpdateReserva(newRes);
 
     return newRes;
   };
@@ -342,7 +490,7 @@ export default function App() {
     { label: 'Vehículos', icon: Car },
     { label: 'Agenda', icon: CalendarDays },
     { label: 'Servicios', icon: CheckCircle2 },
-    { label: 'Precios', icon: ClipboardList },
+    { label: 'Configuración', icon: ClipboardList },
     ...(dbState.currentRole === 'Administrador' ? [
       { label: 'Caja', icon: DollarSign },
       { label: 'Reportes', icon: BarChart4 }
@@ -421,143 +569,239 @@ export default function App() {
   }
 
   return (
-    <div id="lavadero-ryn-app" className="min-h-screen pb-24 md:pb-6 flex flex-col justify-between select-none font-sans bg-brand-bg text-white">
-      {/* Top Bar Navigation / System Profile actions */}
-      <header className="sticky top-0 z-40 bg-brand-black border-b border-gray-800/80 p-4 shrink-0 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <img 
-              src="/src/assets/images/lavadero_ryn_logo_1782222462483.jpg" 
-              alt="Lavadero RyN Logo" 
-              className="w-10 h-10 object-cover rounded-lg border border-brand-red/30 shadow-md"
-              referrerPolicy="no-referrer"
-            />
-            <span className="font-display font-extrabold text-lg text-white leading-none tracking-widest hidden sm:inline">
+    <div id="lavadero-ryn-app" className="min-h-screen flex flex-col md:flex-row select-none font-sans bg-brand-bg text-white">
+      
+      {/* SIDEBAR PARA ESCRITORIO (Visible en md+) */}
+      <aside className="hidden md:flex md:flex-col md:w-64 bg-brand-black border-r border-gray-800/50 shrink-0 p-5 space-y-6">
+        {/* Logo & Marca */}
+        <div className="flex items-center gap-3 py-1">
+          <img 
+            src="/src/assets/images/lavadero_ryn_logo_1782222462483.jpg" 
+            alt="Lavadero RyN Logo" 
+            className="w-10 h-10 object-cover rounded-xl border border-brand-red/20 shadow-md"
+            referrerPolicy="no-referrer"
+          />
+          <div className="flex flex-col">
+            <span className="font-display font-extrabold text-sm tracking-widest text-white leading-none">
               LAVADERO <span className="text-brand-red">RyN</span>
             </span>
+            <span className="text-[10px] text-gray-500 font-mono tracking-wider mt-1 uppercase">SaaS Premium</span>
           </div>
+        </div>
 
-          {/* Quick interactive user role controller */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 font-mono hidden md:inline">Operario:</span>
-            <div className="flex bg-brand-card p-1 rounded-xl border border-gray-850">
-              <button
-                onClick={() => handleToggleRole('Administrador')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 ${
-                  dbState.currentRole === 'Administrador' 
-                    ? 'bg-brand-red text-white' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
+        {/* Selector de Rol de Operario */}
+        <div className="space-y-2">
+          <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider px-1">Operario activo:</div>
+          <div className="flex flex-col bg-brand-card/30 p-1 rounded-xl border border-gray-800/80 gap-1">
+            <button
+              onClick={() => handleToggleRole('Administrador')}
+              className={`w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-between ${
+                dbState.currentRole === 'Administrador' 
+                  ? 'bg-brand-red text-white shadow-sm' 
+                  : 'text-gray-400 hover:text-white hover:bg-brand-card-light/40'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
                 <UserCheck className="w-3.5 h-3.5" />
                 <span>Admin</span>
-              </button>
-              <button
-                onClick={() => handleToggleRole('Empleado')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 ${
-                  dbState.currentRole === 'Empleado' 
-                    ? 'bg-brand-warning text-black' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
+              </span>
+              {dbState.currentRole === 'Administrador' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+            </button>
+            <button
+              onClick={() => handleToggleRole('Empleado')}
+              className={`w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-between ${
+                dbState.currentRole === 'Empleado' 
+                  ? 'bg-brand-warning text-black shadow-sm' 
+                  : 'text-gray-400 hover:text-white hover:bg-brand-card-light/40'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <ClipboardList className="w-3.5 h-3.5" />
                 <span>Empleado</span>
-              </button>
-              <button
-                onClick={() => handleToggleRole('Autoservicio')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 ${
-                  dbState.currentRole === 'Autoservicio' 
-                    ? 'bg-brand-success text-white' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
+              </span>
+              {dbState.currentRole === 'Empleado' && <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />}
+            </button>
+            <button
+              onClick={() => handleToggleRole('Autoservicio')}
+              className={`w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-between ${
+                dbState.currentRole === 'Autoservicio' 
+                  ? 'bg-brand-success text-white shadow-sm' 
+                  : 'text-gray-400 hover:text-white hover:bg-brand-card-light/40'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
                 <Smartphone className="w-3.5 h-3.5" />
                 <span>Autoservicio</span>
-              </button>
-            </div>
+              </span>
+              {dbState.currentRole === 'Autoservicio' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+            </button>
           </div>
+        </div>
+
+        {/* Navegación lateral principal */}
+        <div className="flex-1 space-y-1 overflow-y-auto">
+          <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-2.5 px-1">Módulos</div>
+          {MENU_TABS.map(tab => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.label;
+
+            return (
+              <button
+                key={tab.label}
+                onClick={() => setActiveTab(tab.label)}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-xl transition-all ${
+                  isActive 
+                    ? 'text-brand-red bg-brand-red/10 font-bold border-l-2 border-brand-red pl-2.5' 
+                    : 'text-gray-400 hover:text-white hover:bg-brand-card/40'
+                }`}
+              >
+                <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-brand-red' : ''}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer del Sidebar con info del negocio */}
+        <div className="border-t border-gray-800/80 pt-4 text-center">
+          <h5 className="text-[11px] font-display font-bold text-gray-300">{dbState.nombreNegocio || 'Lavadero RyN'}</h5>
+          <p className="text-[9px] text-gray-500 mt-0.5 truncate">{dbState.direccionNegocio || 'Av. San Martín 1500'}</p>
+        </div>
+      </aside>
+
+      {/* HEADER PARA MÓVILES (Visible solo en md-) */}
+      <header className="sticky top-0 z-40 md:hidden bg-brand-black border-b border-gray-800/80 p-4 shrink-0 shadow-lg flex justify-between items-center">
+        <div className="flex items-center gap-2.5">
+          <img 
+            src="/src/assets/images/lavadero_ryn_logo_1782222462483.jpg" 
+            alt="Lavadero RyN Logo" 
+            className="w-8 h-8 object-cover rounded-lg border border-brand-red/30 shadow-md"
+            referrerPolicy="no-referrer"
+          />
+          <span className="font-display font-extrabold text-sm text-white leading-none tracking-widest">
+            LAVADERO <span className="text-brand-red">RyN</span>
+          </span>
+        </div>
+
+        {/* Compact switcher de roles en móvil */}
+        <div className="flex bg-brand-card p-0.5 rounded-lg border border-gray-800">
+          <button
+            onClick={() => handleToggleRole('Administrador')}
+            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+              dbState.currentRole === 'Administrador' 
+                ? 'bg-brand-red text-white' 
+                : 'text-gray-400'
+            }`}
+          >
+            Admin
+          </button>
+          <button
+            onClick={() => handleToggleRole('Empleado')}
+            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+              dbState.currentRole === 'Empleado' 
+                ? 'bg-brand-warning text-black' 
+                : 'text-gray-400'
+            }`}
+          >
+            Emp
+          </button>
+          <button
+            onClick={() => handleToggleRole('Autoservicio')}
+            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+              dbState.currentRole === 'Autoservicio' 
+                ? 'bg-brand-success text-white' 
+                : 'text-gray-400'
+            }`}
+          >
+            Auto
+          </button>
         </div>
       </header>
 
-      {/* Main viewport Container */}
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 overflow-hidden">
-        {activeTab === 'Inicio' && (
-          <Dashboard 
-            state={dbState} 
-            onNavigate={setActiveTab} 
-            onTriggerWhatsApp={handleTriggerWhatsApp} 
-            onOpenQuickNewService={(res) => {
-              if (res) setQuickServiceReserva(res);
-              setActiveTab('Servicios');
-            }}
-            onUpdateReservaState={handleUpdateReservaState}
-          />
-        )}
+      {/* CONTENIDO PRINCIPAL CON CONTENEDOR FLEX-1 */}
+      <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-y-auto">
+        <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 pb-24 md:pb-6">
+          {activeTab === 'Inicio' && (
+            <Dashboard 
+              state={dbState} 
+              onNavigate={setActiveTab} 
+              onTriggerWhatsApp={handleTriggerWhatsApp} 
+              onOpenQuickNewService={(res) => {
+                if (res) setQuickServiceReserva(res);
+                setActiveTab('Servicios');
+              }}
+              onUpdateReservaState={handleUpdateReservaState}
+            />
+          )}
 
-        {activeTab === 'Clientes' && (
-          <Clients 
-            state={dbState}
-            onAddCliente={handleAddCliente}
-            onUpdateCliente={handleUpdateCliente}
-            onDeleteCliente={handleDeleteCliente}
-            onTriggerWhatsApp={handleTriggerWhatsApp}
-          />
-        )}
+          {activeTab === 'Clientes' && (
+            <Clients 
+              state={dbState}
+              onAddCliente={handleAddCliente}
+              onUpdateCliente={handleUpdateCliente}
+              onDeleteCliente={handleDeleteCliente}
+              onTriggerWhatsApp={handleTriggerWhatsApp}
+            />
+          )}
 
-        {activeTab === 'Vehículos' && (
-          <Vehicles 
-            state={dbState}
-            onAddVehiculo={handleAddVehiculo}
-            onUpdateVehiculo={handleUpdateVehiculo}
-            onDeleteVehiculo={handleDeleteVehiculo}
-          />
-        )}
+          {activeTab === 'Vehículos' && (
+            <Vehicles 
+              state={dbState}
+              onAddVehiculo={handleAddVehiculo}
+              onUpdateVehiculo={handleUpdateVehiculo}
+              onDeleteVehiculo={handleDeleteVehiculo}
+            />
+          )}
 
-        {activeTab === 'Agenda' && (
-          <BookingCalendar 
-            state={dbState}
-            onAddReserva={handleAddReserva}
-            onUpdateReserva={handleUpdateReserva}
-            onDeleteReserva={handleDeleteReserva}
-            onTriggerWhatsApp={handleTriggerWhatsApp}
-          />
-        )}
+          {activeTab === 'Agenda' && (
+            <BookingCalendar 
+              state={dbState}
+              onAddReserva={handleAddReserva}
+              onUpdateReserva={handleUpdateReserva}
+              onDeleteReserva={handleDeleteReserva}
+              onTriggerWhatsApp={handleTriggerWhatsApp}
+            />
+          )}
 
-        {activeTab === 'Servicios' && (
-          <Services 
-            state={dbState}
-            quickServiceReserva={quickServiceReserva}
-            onClearQuickServiceReserva={() => setQuickServiceReserva(null)}
-            onAddServicio={handleAddServicio}
-            onDeleteServicio={handleDeleteServicio}
-            onTriggerWhatsApp={handleTriggerWhatsApp}
-          />
-        )}
+          {activeTab === 'Servicios' && (
+            <Services 
+              state={dbState}
+              quickServiceReserva={quickServiceReserva}
+              onClearQuickServiceReserva={() => setQuickServiceReserva(null)}
+              onAddServicio={handleAddServicio}
+              onDeleteServicio={handleDeleteServicio}
+              onTriggerWhatsApp={handleTriggerWhatsApp}
+            />
+          )}
 
-        {activeTab === 'Precios' && (
-          <Catalogo 
-            state={dbState}
-            onUpdateCatalogo={handleUpdateCatalogo}
-            onUpdatePassword={handleUpdatePassword}
-            onUpdateBusinessWhatsapp={handleUpdateBusinessWhatsapp}
-          />
-        )}
+          {activeTab === 'Configuración' && (
+            <Catalogo 
+              state={dbState}
+              onUpdateCatalogo={handleUpdateCatalogo}
+              onUpdatePassword={handleUpdatePassword}
+              onUpdateBusinessWhatsapp={handleUpdateBusinessWhatsapp}
+              onUpdateBusinessConfig={handleUpdateBusinessConfig}
+              onRestoreBackup={handleRestoreBackup}
+            />
+          )}
 
-        {activeTab === 'Caja' && dbState.currentRole === 'Administrador' && (
-          <Caja 
-            state={dbState}
-            onAddGasto={handleAddGasto}
-            onDeleteGasto={handleDeleteGasto}
-          />
-        )}
+          {activeTab === 'Caja' && dbState.currentRole === 'Administrador' && (
+            <Caja 
+              state={dbState}
+              onAddGasto={handleAddGasto}
+              onDeleteGasto={handleDeleteGasto}
+            />
+          )}
 
-        {activeTab === 'Reportes' && dbState.currentRole === 'Administrador' && (
-          <Reports state={dbState} />
-        )}
-      </main>
+          {activeTab === 'Reportes' && dbState.currentRole === 'Administrador' && (
+            <Reports state={dbState} />
+          )}
+        </main>
+      </div>
 
-      {/* Persistent Simple Navigation Menu at Bottom (Optimized for Mobile/Móvil) */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-brand-black border-t border-gray-800/80 p-2 shrink-0 shadow-2xl">
-        <div className="max-w-md mx-auto flex items-center justify-between gap-1">
+      {/* MENÚ INFERIOR PARA MÓVILES (Oculto en md+) */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-brand-black border-t border-gray-800/80 p-2 shrink-0 shadow-2xl">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-1 font-sans">
           {MENU_TABS.map(tab => {
             const IconComponent = tab.icon;
             const isActive = activeTab === tab.label;
