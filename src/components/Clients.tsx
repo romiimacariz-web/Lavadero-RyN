@@ -199,13 +199,13 @@ export default function Clients({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* List Column */}
-      <div className="lg:col-span-5 p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
+      <div className="lg:col-span-5 p-5 bg-brand-card rounded-3xl border border-white/[0.04] shadow-xl shadow-black/20 space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-display font-extrabold text-white">Clientes Registrados</h2>
+          <h2 className="text-xl font-display font-black text-white">Clientes Registrados</h2>
           <button 
             type="button"
             onClick={handleOpenAdd}
-            className="bg-brand-red hover:bg-red-800 text-white font-medium text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all"
+            className="premium-btn-primary px-4 py-2 rounded-xl flex items-center gap-1.5 font-bold text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Nuevo Cliente
@@ -216,7 +216,7 @@ export default function Clients({
         <div className="relative">
           <input
             type="text"
-            className="block w-full pl-9 pr-4 py-2 text-sm border border-gray-800 rounded-xl bg-brand-card text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-red font-sans"
+            className="block w-full pl-9 pr-4 py-2 text-xs border border-white/[0.06] rounded-xl bg-[#181822] text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-red/50 focus:border-brand-red/50 transition font-sans"
             placeholder="Buscar por nombre o teléfono..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -238,10 +238,10 @@ export default function Clients({
               <div 
                 key={c.id}
                 onClick={() => { setSelectedCliente(c); setIsAdding(false); setIsEditing(false); }}
-                className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${
+                className={`p-3.5 rounded-xl border cursor-pointer flex justify-between items-center transition-all duration-150 ${
                   isSelected 
-                    ? 'bg-brand-red/10 border-brand-red' 
-                    : 'bg-brand-card-light border-gray-800/60 hover:bg-[#2B2B2B]/60'
+                    ? 'bg-brand-red/10 border-brand-red/40' 
+                    : 'bg-[#181822]/20 border-white/[0.03] hover:border-white/[0.1] hover:bg-[#181822]/40'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -249,29 +249,29 @@ export default function Clients({
                     <img 
                       src={c.fotoUrl} 
                       alt={c.nombre} 
-                      className="w-10 h-10 object-cover rounded-xl border border-gray-800"
+                      className="w-10 h-10 object-cover rounded-xl border border-white/[0.04]"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 font-bold text-sm">
+                    <div className="w-10 h-10 rounded-xl bg-gray-850 flex items-center justify-center text-gray-400 font-bold text-sm border border-white/[0.03]">
                       {c.nombre.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-display font-bold text-white text-sm">{c.nombre}</span>
+                      <span className="font-display font-bold text-white text-xs">{c.nombre}</span>
                       {isInactive && (
-                        <span className="text-[9px] bg-brand-warning/10 text-brand-warning border border-brand-warning/20 px-1.5 py-0.5 rounded font-mono">
+                        <span className="text-[8px] bg-brand-warning/10 text-brand-warning border border-brand-warning/20 px-1.5 py-0.5 rounded font-mono font-bold uppercase leading-none">
                           Inactivo
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
                       <Phone className="w-3 h-3 text-brand-red" />
                       <span className="font-mono">{c.telefono}</span>
                       <span className="text-gray-600">&bull;</span>
                       <span>{visits} vis.</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                    <div className="flex items-center gap-1 text-[9px] text-gray-500">
                       <Car className="w-3 h-3 shrink-0" />
                       <span className="truncate max-w-[150px]">
                         {vehicles.length === 0 
@@ -296,15 +296,15 @@ export default function Clients({
       {/* Detail / Profile & Form Column */}
       <div className="lg:col-span-7">
         {isAdding || isEditing ? (
-          <div className="p-6 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
-            <h2 className="text-lg font-display font-bold text-white border-b border-gray-800 pb-2">
+          <div className="p-6 bg-brand-card rounded-3xl border border-white/[0.04] shadow-xl shadow-black/20 space-y-4">
+            <h2 className="text-lg font-display font-black text-white border-b border-white/[0.05] pb-2.5">
               {isAdding ? 'Registrar Nuevo Cliente' : `Editar Cliente: ${selectedCliente?.nombre}`}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               
               {/* Photo Upload Zone */}
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-wider block">Foto del Cliente</label>
+                <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Foto del Cliente</label>
                 <div 
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -312,7 +312,7 @@ export default function Clients({
                   className={`border-2 border-dashed rounded-2xl p-4 text-center transition flex flex-col items-center justify-center gap-2 cursor-pointer ${
                     isDraggingFile 
                       ? 'border-brand-red bg-brand-red/5' 
-                      : 'border-gray-800 hover:border-brand-red/30 bg-brand-card-light'
+                      : 'border-white/[0.06] hover:border-brand-red/30 bg-[#181822]/20'
                   }`}
                 >
                   {fotoUrl ? (
@@ -320,12 +320,12 @@ export default function Clients({
                       <img 
                         src={fotoUrl} 
                         alt="Previsualización" 
-                        className="w-24 h-24 object-cover rounded-2xl border border-gray-800 shadow-lg"
+                        className="w-24 h-24 object-cover rounded-2xl border border-white/[0.04] shadow-lg"
                       />
                       <button
                         type="button"
                         onClick={() => setFotoUrl('')}
-                        className="absolute -top-2 -right-2 bg-brand-red text-white p-1 rounded-full text-xs shadow-md"
+                        className="absolute -top-2 -right-2 bg-brand-red text-white p-1 rounded-full text-[10px] font-bold shadow-md cursor-pointer hover:bg-red-700"
                       >
                         ✕
                       </button>
@@ -333,8 +333,8 @@ export default function Clients({
                   ) : (
                     <>
                       <Camera className="w-8 h-8 text-gray-500" />
-                      <p className="text-xs text-gray-300 font-semibold">Arrastra y suelta una imagen o haz clic para subir</p>
-                      <p className="text-[10px] text-gray-500">Soporta PNG, JPG (Se almacena automáticamente en la ficha del cliente)</p>
+                      <p className="text-xs text-gray-300 font-bold">Arrastra y suelta una imagen o haz clic para subir</p>
+                      <p className="text-[9px] text-gray-500">Soporta PNG, JPG (Se almacena automáticamente en la ficha del cliente)</p>
                     </>
                   )}
                   <input 
@@ -347,7 +347,7 @@ export default function Clients({
                   {!fotoUrl && (
                     <label 
                       htmlFor="client-file-upload" 
-                      className="bg-brand-card border border-gray-700 hover:border-brand-red/50 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg cursor-pointer mt-1"
+                      className="bg-[#181822] border border-white/[0.06] hover:bg-white/[0.02] text-white font-bold text-xs px-3.5 py-1.5 rounded-lg cursor-pointer mt-1"
                     >
                       Seleccionar Archivo
                     </label>
@@ -357,22 +357,22 @@ export default function Clients({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Nombre Completo *</label>
+                  <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Nombre Completo *</label>
                   <input
                     type="text"
                     required
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                    className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none"
                     placeholder="Escribir nombre del cliente..."
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Teléfono de Contacto *</label>
+                  <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Teléfono de Contacto *</label>
                   <input
                     type="tel"
                     required
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                    className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none"
                     placeholder="Móvil (ej: +549115544...)"
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
@@ -382,20 +382,20 @@ export default function Clients({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Número de WhatsApp (Opcional)</label>
+                  <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Número de WhatsApp (Opcional)</label>
                   <input
                     type="text"
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                    className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none"
                     placeholder="Dejar vacío para usar teléfono"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Dirección de Domicilio (Opcional)</label>
+                  <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Dirección de Domicilio (Opcional)</label>
                   <input
                     type="text"
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                    className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none"
                     placeholder="Calle, Número, Departamento..."
                     value={direccion}
                     onChange={(e) => setDireccion(e.target.value)}
@@ -404,9 +404,9 @@ export default function Clients({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Observaciones / Preferencias</label>
+                <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Observaciones / Preferencias</label>
                 <textarea
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white min-h-[90px] focus:outline-none focus:ring-1 focus:ring-brand-red"
+                  className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none min-h-[90px]"
                   placeholder="Detalles específicos (ej: cuidado de tapizados, lavado de motor, horario preferido...)"
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
@@ -417,13 +417,13 @@ export default function Clients({
                 <button
                   type="button"
                   onClick={() => { setIsAdding(false); setIsEditing(false); }}
-                  className="bg-[#2B2B2B] hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-xl"
+                  className="bg-[#181822] hover:bg-white/[0.04] border border-white/[0.06] text-white font-bold px-4 py-2.5 rounded-xl cursor-pointer transition text-xs"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-brand-red hover:bg-red-800 text-white font-semibold px-5 py-2 rounded-xl"
+                  className="bg-brand-red hover:bg-red-700 text-white font-bold px-5 py-2.5 rounded-xl cursor-pointer transition shadow-lg shadow-brand-red/10 text-xs"
                 >
                   {isAdding ? 'Registrar' : 'Guardar Cambios'}
                 </button>
@@ -431,24 +431,24 @@ export default function Clients({
             </form>
           </div>
         ) : selectedCliente ? (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-scaleUp">
             
             {/* Extended Profile Overview Card */}
-            <div className="p-6 bg-brand-card rounded-2xl border border-gray-800 relative overflow-hidden">
+            <div className="p-6 bg-brand-card rounded-3xl border border-white/[0.04] relative overflow-hidden shadow-xl shadow-black/20">
               <div className="absolute top-0 right-0 w-48 h-48 bg-brand-red/5 rounded-full blur-2xl pointer-events-none"></div>
               
               {/* Profile Actions */}
-              <div className="absolute top-4 right-4 flex items-center gap-2">
+              <div className="absolute top-5 right-5 flex items-center gap-2">
                 <button
                   onClick={() => handleOpenEdit(selectedCliente)}
-                  className="p-2 bg-brand-card-light text-gray-300 hover:text-white rounded-lg border border-gray-800 hover:border-gray-700 transition"
+                  className="p-2 bg-[#181822] text-gray-300 hover:text-white rounded-xl border border-white/[0.06] hover:border-white/[0.1] transition cursor-pointer"
                   title="Editar Cliente"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className="p-2 bg-brand-card-light text-brand-red/70 hover:text-brand-red rounded-lg border border-gray-800 hover:border-brand-red/30 transition"
+                  className="p-2 bg-[#181822] text-brand-red/70 hover:text-brand-red rounded-xl border border-white/[0.06] hover:border-brand-red/30 transition cursor-pointer"
                   title="Eliminar Cliente"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -460,10 +460,10 @@ export default function Clients({
                   <img 
                     src={selectedCliente.fotoUrl} 
                     alt={selectedCliente.nombre} 
-                    className="w-20 h-20 object-cover rounded-2xl border border-gray-700 shadow-xl"
+                    className="w-20 h-20 object-cover rounded-2xl border border-white/[0.04] shadow-xl"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-gray-800 flex items-center justify-center text-gray-400 font-black text-2xl border border-gray-750">
+                  <div className="w-20 h-20 rounded-2xl bg-gray-850 flex items-center justify-center text-gray-400 font-black text-2xl border border-white/[0.03]">
                     {selectedCliente.nombre.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -472,35 +472,35 @@ export default function Clients({
                   <span className="text-[9px] font-mono uppercase bg-brand-red/10 text-brand-red border border-brand-red/20 px-2.5 py-1 rounded-full font-bold inline-block">
                     Perfil del Cliente
                   </span>
-                  <h2 className="text-2xl font-display font-extrabold text-white leading-tight mt-1">{selectedCliente.nombre}</h2>
+                  <h2 className="text-2xl font-display font-black text-white leading-tight mt-1">{selectedCliente.nombre}</h2>
                   <p className="text-xs text-gray-500 font-mono">ID: {selectedCliente.id} &bull; Registro: {selectedCliente.fechaRegistro}</p>
                 </div>
               </div>
 
               {/* Advanced Real-time Metrics Panels */}
-              <div className="grid grid-cols-3 gap-3 mt-6 p-4 bg-brand-card-light rounded-2xl border border-gray-850">
+              <div className="grid grid-cols-3 gap-3 mt-6 p-4 bg-[#181822]/40 rounded-2xl border border-white/[0.04]">
                 <div className="text-center">
-                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Visitas Totales</p>
+                  <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider font-bold">Visitas Totales</p>
                   <p className="text-lg font-display font-black text-white mt-1">
                     {getClienteServicios(selectedCliente.id).length}
                   </p>
                 </div>
-                <div className="text-center border-x border-gray-800">
-                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Total Invertido</p>
+                <div className="text-center border-x border-white/[0.05]">
+                  <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider font-bold">Total Invertido</p>
                   <p className="text-lg font-display font-black text-brand-success mt-1 font-mono">
                     ${getClienteTotalSpent(selectedCliente.id).toLocaleString('es-AR')}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Último Servicio</p>
-                  <p className="text-xs font-bold text-gray-300 mt-2 truncate">
+                  <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wider font-bold">Último Servicio</p>
+                  <p className="text-xs font-bold text-gray-300 mt-2 truncate font-mono">
                     {getClienteServicios(selectedCliente.id)[0]?.fecha.split(' ')[0] || 'Ninguno'}
                   </p>
                 </div>
               </div>
 
               {/* Quick Contact & Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t border-gray-850 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t border-white/[0.05] text-xs">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2.5 text-gray-300">
                     <Phone className="w-4 h-4 text-brand-red" />
@@ -508,12 +508,12 @@ export default function Clients({
                   </div>
                   
                   <div className="flex items-center gap-2.5">
-                    <MessageSquare className="w-4 h-4 text-brand-success" />
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
                     <a 
                       href={getWhatsAppHref(selectedCliente.whatsapp, `Hola ${selectedCliente.nombre}, te saludamos de Lavadero RyN.`)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-brand-success hover:underline font-bold text-xs flex items-center gap-1 bg-brand-success/10 px-3 py-1.5 rounded-xl border border-brand-success/20 transition"
+                      className="text-emerald-400 font-bold text-xs flex items-center gap-1.5 bg-emerald-500/10 px-3.5 py-1.5 rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition cursor-pointer"
                     >
                       <span>Mandar WhatsApp</span>
                     </a>
@@ -530,8 +530,8 @@ export default function Clients({
 
               {/* Observations */}
               {selectedCliente.observaciones && (
-                <div className="mt-5 p-3.5 bg-brand-card border border-gray-800 rounded-2xl text-xs text-gray-300 flex items-start gap-2.5">
-                  <FileText className="w-4.5 h-4.5 text-brand-warning shrink-0 mt-0.5" />
+                <div className="mt-5 p-3.5 bg-[#181822]/20 border border-white/[0.04] rounded-2xl text-xs text-gray-300 flex items-start gap-2.5">
+                  <FileText className="w-4.5 h-4.5 text-[#FFC107] shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-white">Observaciones / Preferencias:</p>
                     <p className="mt-1 leading-relaxed text-gray-400">{selectedCliente.observaciones}</p>
@@ -541,7 +541,7 @@ export default function Clients({
 
               {/* Inactivity campaigns */}
               {offerInactiveReminder(selectedCliente.id) && (
-                <div className="mt-4 p-3.5 bg-brand-warning/10 border border-brand-warning/20 rounded-2xl flex items-center justify-between text-xs gap-3">
+                <div className="mt-4 p-3.5 bg-amber-500/5 border border-amber-500/15 rounded-2xl flex items-center justify-between text-xs gap-3">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#FFC107] shrink-0" />
                     <p className="text-gray-300 leading-relaxed">
@@ -550,7 +550,7 @@ export default function Clients({
                   </div>
                   <button
                     onClick={() => handleSendReminder(selectedCliente)}
-                    className="bg-[#FFC107] hover:bg-yellow-500 text-black px-3.5 py-1.5 rounded-xl font-bold shrink-0 shadow-lg transition uppercase tracking-wider text-[10px]"
+                    className="bg-amber-500 hover:bg-amber-600 text-black px-3.5 py-2 rounded-xl font-black shrink-0 shadow-md transition uppercase tracking-wider text-[9px] cursor-pointer"
                   >
                     Mandar Saludo
                   </button>
@@ -559,22 +559,22 @@ export default function Clients({
             </div>
 
             {/* Linked Vehicles Section */}
-            <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-3">
-              <h3 className="text-sm font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-gray-850 pb-2">
+            <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-3 shadow-xl">
+              <h3 className="text-xs font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-white/[0.05] pb-2 font-bold">
                 <Car className="w-4 h-4 text-brand-red" />
                 Vehículos Vinculados ({getClienteVehiculos(selectedCliente.id).length})
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {getClienteVehiculos(selectedCliente.id).map(v => (
-                  <div key={v.matricula} className="p-3 bg-brand-card-light rounded-xl border border-gray-800 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gray-850 flex items-center justify-center text-white shrink-0 border border-gray-800">
+                  <div key={v.matricula} className="p-3 bg-[#181822]/20 rounded-xl border border-white/[0.04] hover:border-white/[0.1] transition flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gray-850 flex items-center justify-center text-white shrink-0 border border-white/[0.03]">
                       <Car className="w-5 h-5 text-brand-red" />
                     </div>
                     <div>
-                      <p className="font-bold text-white text-sm capitalize">{v.marca} {v.modelo}</p>
+                      <p className="font-bold text-white text-xs capitalize">{v.marca} {v.modelo}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] bg-white text-black font-mono font-black px-1.5 py-0.5 rounded plate-font uppercase tracking-wider">
+                        <span className="text-[9px] bg-white text-black font-mono font-black px-1.5 py-0.5 rounded plate-font uppercase tracking-wider">
                           {v.matricula}
                         </span>
                         <span className="text-[10px] text-gray-400">{v.color} ({v.anio})</span>
@@ -584,7 +584,7 @@ export default function Clients({
                 ))}
 
                 {getClienteVehiculos(selectedCliente.id).length === 0 && (
-                  <p className="p-4 bg-brand-card-light rounded-xl text-center text-xs text-gray-500 italic col-span-2 border border-dashed border-gray-850">
+                  <p className="p-4 bg-[#181822]/10 rounded-xl text-center text-xs text-gray-500 italic col-span-2 border border-dashed border-white/[0.05]">
                     Este cliente no tiene ningún auto registrado. Para vincular un auto, dirígete al módulo de Vehículos.
                   </p>
                 )}
@@ -592,18 +592,18 @@ export default function Clients({
             </div>
 
             {/* Complete History */}
-            <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-3">
-              <h3 className="text-sm font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-gray-850 pb-2">
+            <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-3 shadow-xl">
+              <h3 className="text-xs font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-white/[0.05] pb-2 font-bold">
                 <History className="w-4 h-4 text-brand-red" />
                 Historial Completo de Servicios ({getClienteServicios(selectedCliente.id).length})
               </h3>
 
               <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
                 {getClienteServicios(selectedCliente.id).map(s => (
-                  <div key={s.id} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center text-xs hover:border-gray-800 transition">
+                  <div key={s.id} className="p-3.5 bg-[#181822]/20 rounded-xl border border-white/[0.04] flex justify-between items-center text-xs hover:border-white/[0.1] transition">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm capitalize">{s.tipo}</span>
+                        <span className="font-bold text-white text-sm capitalize font-display">{s.tipo}</span>
                         <span className="text-[9px] bg-white/10 text-gray-300 font-bold px-1.5 py-0.5 rounded font-mono">
                           {s.vehiculoMatricula}
                         </span>
@@ -616,7 +616,7 @@ export default function Clients({
                     </div>
 
                     <div className="text-right">
-                      <span className="font-mono text-sm text-brand-success font-extrabold">
+                      <span className="font-mono text-sm text-brand-success font-black">
                         +${s.precio.toLocaleString('es-AR')}
                       </span>
                     </div>
@@ -624,7 +624,7 @@ export default function Clients({
                 ))}
 
                 {getClienteServicios(selectedCliente.id).length === 0 && (
-                  <p className="p-4 rounded-xl text-center text-xs text-gray-500 italic border border-dashed border-gray-850">
+                  <p className="p-4 rounded-xl text-center text-xs text-gray-500 italic border border-dashed border-white/[0.05]">
                     No hay trabajos guardados para este cliente en el historial.
                   </p>
                 )}
@@ -632,10 +632,10 @@ export default function Clients({
             </div>
           </div>
         ) : (
-          <div className="p-12 text-center bg-brand-card rounded-2xl border border-gray-800 space-y-3 flex flex-col items-center justify-center min-h-[440px]">
-            <User className="w-16 h-16 text-gray-600 animate-bounce" />
-            <h3 className="text-lg font-display font-medium text-gray-300">Selecciona un cliente</h3>
-            <p className="text-xs text-gray-500 max-w-sm">
+          <div className="p-12 text-center bg-brand-card rounded-3xl border border-white/[0.04] space-y-3 flex flex-col items-center justify-center min-h-[440px] shadow-xl shadow-black/20">
+            <User className="w-16 h-16 text-gray-650" />
+            <h3 className="text-lg font-display font-black text-gray-300">Selecciona un cliente</h3>
+            <p className="text-xs text-gray-500 max-w-sm leading-relaxed">
               Haz clic en cualquier cliente de la lista de la izquierda para examinar sus fotos, vehículos asociados, facturaciones totales, observaciones y enviar notificaciones directas.
             </p>
           </div>
@@ -644,10 +644,10 @@ export default function Clients({
 
       {/* Delete confirmation modal */}
       {showConfirmDelete && selectedCliente && (
-        <div id="confirm-delete-modal" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl">
+        <div id="confirm-delete-modal" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#0F0F15] rounded-3xl border border-white/[0.04] p-6 space-y-6 shadow-2xl shadow-black/60">
             <div className="text-center space-y-2">
-              <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
+              <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/20 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
                 <Trash2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-display font-black text-white">¿Eliminar Cliente?</h3>
@@ -659,7 +659,7 @@ export default function Clients({
               <button
                 type="button"
                 onClick={() => setShowConfirmDelete(false)}
-                className="flex-1 bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs py-3 rounded-xl transition-all"
+                className="flex-1 bg-[#181822] hover:bg-white/[0.04] text-white border border-white/[0.06] font-bold text-xs py-3 rounded-xl transition cursor-pointer"
               >
                 Cancelar
               </button>
@@ -670,7 +670,7 @@ export default function Clients({
                   setSelectedCliente(null);
                   setShowConfirmDelete(false);
                 }}
-                className="flex-1 bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl transition-all"
+                className="flex-1 bg-brand-red hover:bg-red-700 text-white font-extrabold text-xs py-3 rounded-xl transition cursor-pointer shadow-lg shadow-brand-red/10"
               >
                 Eliminar
               </button>

@@ -37,7 +37,7 @@ interface SelfServiceProps {
     hora: string,
     servicioSol: string,
     observaciones?: string
-  ) => Reserva;
+  ) => Promise<Reserva>;
   onTriggerWhatsApp: (phone: string, text: string) => void;
   onExit: () => void;
   isPublicRoute?: boolean;
@@ -61,6 +61,7 @@ export default function SelfService({
   const [showExitModal, setShowExitModal] = useState(false);
   const [exitPassword, setExitPassword] = useState('');
   const [exitError, setExitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // STEP 1 Form: Owner
   const [nombre, setNombre] = useState('');
@@ -130,29 +131,37 @@ export default function SelfService({
     }
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     if (!nombre.trim() || !telefono.trim() || !matricula.trim() || !fecha || !hora) {
       setErrorText('Por favor complete todos los datos necesarios.');
       return;
     }
     setErrorText(null);
+    setIsSubmitting(true);
 
-    const created = onAddBooking(
-      nombre.trim(),
-      telefono.trim(),
-      matricula.toUpperCase().replace(/\s+/g, ''),
-      marca.trim() || 'Desconocida',
-      modelo.trim() || 'S/D',
-      color.trim() || 'S/D',
-      Number(anio) || new Date().getFullYear(),
-      fecha,
-      hora,
-      servicioSol,
-      observaciones.trim() || undefined
-    );
+    try {
+      const created = await onAddBooking(
+        nombre.trim(),
+        telefono.trim(),
+        matricula.toUpperCase().replace(/\s+/g, ''),
+        marca.trim() || 'Desconocida',
+        modelo.trim() || 'S/D',
+        color.trim() || 'S/D',
+        Number(anio) || new Date().getFullYear(),
+        fecha,
+        hora,
+        servicioSol,
+        observaciones.trim() || undefined
+      );
 
-    setSuccessBooking(created);
-    setStep(5);
+      setSuccessBooking(created);
+      setStep(5);
+    } catch (err) {
+      console.error('Error reserving turn: ', err);
+      setErrorText('Hubo un inconveniente al agendar el turno en Firestore. Por favor intente nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetWizard = () => {
@@ -585,11 +594,16 @@ export default function SelfService({
 
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={handleConfirmOrder}
-                className="bg-brand-red hover:bg-red-800 text-white font-black text-xs px-7 py-3 rounded-xl flex items-center gap-2 shadow-lg shadow-red-950 transition-all scale-105 active:scale-95"
+                className="bg-brand-red disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-800 text-white font-black text-xs px-7 py-3 rounded-xl flex items-center gap-2 shadow-lg shadow-red-950 transition-all scale-105 active:scale-95"
               >
-                <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
-                SOLICITAR TURNO AHORA
+                {isSubmitting ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
+                )}
+                {isSubmitting ? 'AGENDANDO TURNO...' : 'SOLICITAR TURNO AHORA'}
               </button>
             </div>
           </div>

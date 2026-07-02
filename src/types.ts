@@ -75,6 +75,13 @@ export interface CatalogoServicio {
   descripcion?: string;
 }
 
+export interface Usuario {
+  uid: string;
+  email: string;
+  nombre: string;
+  rol: 'Administrador' | 'Empleado';
+}
+
 export interface DatabaseState {
   clientes: Cliente[];
   vehiculos: Vehiculo[];

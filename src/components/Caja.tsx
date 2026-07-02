@@ -202,13 +202,13 @@ export default function Caja({
   return (
     <div className="space-y-6">
       {/* Caja Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-brand-card rounded-2xl border border-gray-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-brand-card rounded-3xl border border-white/[0.04] shadow-xl shadow-black/20">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-xl">
+          <div className="p-3 bg-brand-red/10 border border-brand-red/20 text-brand-red rounded-xl">
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-display font-extrabold text-white">Flujos de Caja Operativa</h2>
+            <h2 className="text-xl font-display font-black text-white">Flujos de Caja Operativa</h2>
             <p className="text-xs text-gray-400">Control de ingresos, egresos y arqueo de caja diario</p>
           </div>
         </div>
@@ -216,14 +216,14 @@ export default function Caja({
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowClosingModal(true)}
-            className="bg-brand-success/15 hover:bg-brand-success/25 border border-brand-success/40 text-brand-success font-bold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition"
+            className="bg-brand-success/15 hover:bg-brand-success/20 border border-brand-success/30 text-brand-success font-bold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4" />
             Cierre de Caja
           </button>
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-brand-red hover:bg-red-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition"
+            className="premium-btn-primary px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs cursor-pointer animate-pulse"
           >
             <Plus className="w-4 h-4" />
             Registrar Gasto
@@ -234,22 +234,22 @@ export default function Caja({
       {/* Auto Calculation Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Daily Stats Card */}
-        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
-          <div className="flex justify-between items-center border-b border-gray-850 pb-2">
-            <span className="font-display font-bold text-white text-sm">BALANCE DIARIO (Hoy)</span>
+        <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-4 shadow-xl shadow-black/20">
+          <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+            <span className="font-display font-bold text-white text-xs">BALANCE DIARIO (Hoy)</span>
             <span className="text-[10px] font-mono text-gray-500">{todayStr}</span>
           </div>
 
-          <div className="space-y-2 text-sm text-gray-300">
+          <div className="space-y-2 text-xs text-gray-300">
             <div className="flex justify-between">
               <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-brand-success" /> Ingresos:</span>
-              <span className="font-mono text-white font-semibold">${incomingToday.toLocaleString('es-AR')}</span>
+              <span className="font-mono text-white font-bold">${incomingToday.toLocaleString('es-AR')}</span>
             </div>
             <div className="flex justify-between">
               <span className="flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-brand-red" /> Gastos del Día:</span>
-              <span className="font-mono text-white font-semibold">${outgoingToday.toLocaleString('es-AR')}</span>
+              <span className="font-mono text-white font-bold">${outgoingToday.toLocaleString('es-AR')}</span>
             </div>
-            <div className="flex justify-between border-t border-gray-850 pt-2 text-base font-bold">
+            <div className="flex justify-between border-t border-white/[0.05] pt-2 text-sm font-bold">
               <span>Ganancia Neta:</span>
               <span className={`font-mono ${netToday >= 0 ? 'text-[#FFC107]' : 'text-brand-red'}`}>
                 ${netToday.toLocaleString('es-AR')}
@@ -259,22 +259,22 @@ export default function Caja({
         </div>
 
         {/* Weekly Stats Card */}
-        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
-          <div className="flex justify-between items-center border-b border-gray-850 pb-2">
-            <span className="font-display font-bold text-white text-sm">BALANCE SEMANAL</span>
-            <span className="text-[10px] bg-brand-red/10 text-brand-red font-semibold px-2 py-0.5 rounded-full">Esta Semana</span>
+        <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-4 shadow-xl shadow-black/20">
+          <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+            <span className="font-display font-bold text-white text-xs">BALANCE SEMANAL</span>
+            <span className="text-[9px] bg-brand-red/10 text-brand-red font-bold px-2 py-0.5 rounded-full border border-brand-red/20 uppercase tracking-wider">Esta Semana</span>
           </div>
 
-          <div className="space-y-2 text-sm text-gray-300">
+          <div className="space-y-2 text-xs text-gray-300">
             <div className="flex justify-between">
               <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-brand-success" /> Ingresos:</span>
-              <span className="font-mono text-white font-semibold">${weeklyStats.Incomes.toLocaleString('es-AR')}</span>
+              <span className="font-mono text-white font-bold">${weeklyStats.Incomes.toLocaleString('es-AR')}</span>
             </div>
             <div className="flex justify-between">
               <span className="flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-brand-red" /> Gastos:</span>
-              <span className="font-mono text-white font-semibold">${weeklyStats.Expenses.toLocaleString('es-AR')}</span>
+              <span className="font-mono text-white font-bold">${weeklyStats.Expenses.toLocaleString('es-AR')}</span>
             </div>
-            <div className="flex justify-between border-t border-gray-850 pt-2 text-base font-bold">
+            <div className="flex justify-between border-t border-white/[0.05] pt-2 text-sm font-bold">
               <span>Ganancia Neta:</span>
               <span className={`font-mono ${weeklyStats.Net >= 0 ? 'text-[#FFC107]' : 'text-brand-red'}`}>
                 ${weeklyStats.Net.toLocaleString('es-AR')}
@@ -284,22 +284,22 @@ export default function Caja({
         </div>
 
         {/* Monthly Stats Card */}
-        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
-          <div className="flex justify-between items-center border-b border-gray-850 pb-2">
-            <span className="font-display font-bold text-white text-sm">BALANCE MENSUAL</span>
-            <span className="text-[10px] bg-brand-red/10 text-brand-red font-semibold px-2 py-0.5 rounded-full">Mes en curso</span>
+        <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-4 shadow-xl shadow-black/20">
+          <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+            <span className="font-display font-bold text-white text-xs">BALANCE MENSUAL</span>
+            <span className="text-[9px] bg-brand-red/10 text-brand-red font-bold px-2 py-0.5 rounded-full border border-brand-red/20 uppercase tracking-wider">Mes en curso</span>
           </div>
 
-          <div className="space-y-2 text-sm text-gray-300">
+          <div className="space-y-2 text-xs text-gray-300">
             <div className="flex justify-between">
               <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-brand-success" /> Ingresos:</span>
-              <span className="font-mono text-white font-semibold">${monthlyStats.Incomes.toLocaleString('es-AR')}</span>
+              <span className="font-mono text-white font-bold">${monthlyStats.Incomes.toLocaleString('es-AR')}</span>
             </div>
             <div className="flex justify-between">
               <span className="flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-brand-red" /> Gastos:</span>
-              <span className="font-mono text-white font-semibold">${monthlyStats.Expenses.toLocaleString('es-AR')}</span>
+              <span className="font-mono text-white font-bold">${monthlyStats.Expenses.toLocaleString('es-AR')}</span>
             </div>
-            <div className="flex justify-between border-t border-gray-850 pt-2 text-base font-bold">
+            <div className="flex justify-between border-t border-white/[0.05] pt-2 text-sm font-bold">
               <span>Ganancia Neta:</span>
               <span className={`font-mono ${monthlyStats.Net >= 0 ? 'text-[#FFC107]' : 'text-brand-red'}`}>
                 ${monthlyStats.Net.toLocaleString('es-AR')}
@@ -312,8 +312,8 @@ export default function Caja({
       {/* Income Breakdown by Payment Method */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Daily Breakdown */}
-        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
-          <h3 className="text-sm font-display font-extrabold text-white flex items-center gap-2 border-b border-gray-850 pb-2">
+        <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-4 shadow-xl shadow-black/20">
+          <h3 className="text-xs font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-white/[0.05] pb-2 font-bold">
             <Layers className="w-4 h-4 text-brand-red" />
             Métodos de Pago - Facturación de Hoy
           </h3>
@@ -321,7 +321,7 @@ export default function Caja({
             {['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro'].map(method => {
               const total = paymentMethodsToday[method] || 0;
               return (
-                <div key={method} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center">
+                <div key={method} className="p-3 bg-[#181822]/40 rounded-xl border border-white/[0.03] flex justify-between items-center hover:border-white/[0.08] transition duration-150">
                   <span className="text-gray-400 font-medium">{method}</span>
                   <span className="font-mono text-white font-bold">${total.toLocaleString('es-AR')}</span>
                 </div>
@@ -331,8 +331,8 @@ export default function Caja({
         </div>
 
         {/* Monthly Breakdown */}
-        <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
-          <h3 className="text-sm font-display font-extrabold text-white flex items-center gap-2 border-b border-gray-850 pb-2">
+        <div className="p-5 bg-brand-card rounded-3xl border border-white/[0.04] space-y-4 shadow-xl shadow-black/20">
+          <h3 className="text-xs font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-white/[0.05] pb-2 font-bold">
             <Layers className="w-4 h-4 text-brand-red" />
             Métodos de Pago - Facturación Mensual
           </h3>
@@ -340,7 +340,7 @@ export default function Caja({
             {['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro'].map(method => {
               const total = paymentMethodsMonth[method] || 0;
               return (
-                <div key={method} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center">
+                <div key={method} className="p-3 bg-[#181822]/40 rounded-xl border border-white/[0.03] flex justify-between items-center hover:border-white/[0.08] transition duration-150">
                   <span className="text-gray-400 font-medium">{method}</span>
                   <span className="font-mono text-white font-bold">${total.toLocaleString('es-AR')}</span>
                 </div>
@@ -353,20 +353,20 @@ export default function Caja({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Register Expense collapsible form */}
         {isAdding && (
-          <div className="lg:col-span-5 p-5 bg-brand-card rounded-2xl border border-brand-red/30 space-y-4">
-            <h3 className="text-base font-display font-bold text-white border-b border-gray-800 pb-2 flex items-center gap-2">
+          <div className="lg:col-span-5 p-5 bg-brand-card rounded-3xl border border-brand-red/30 space-y-4 shadow-xl shadow-black/20">
+            <h3 className="text-base font-display font-black text-white border-b border-white/[0.05] pb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-brand-red shrink-0" />
               Nuevo Registro de Egreso
             </h3>
 
             <form onSubmit={handleExpenseSubmit} className="space-y-4 text-xs font-sans">
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Procedimiento / Descripción *</label>
+                <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Procedimiento / Descripción *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Insumos de cera, mantenimiento bomba..."
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-red"
+                  className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                 />
@@ -374,11 +374,11 @@ export default function Caja({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Categoría del Gasto *</label>
+                  <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Categoría del Gasto *</label>
                   <select
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value as GastoCategoria)}
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3 py-2 text-xs transition duration-150 focus:outline-none"
                   >
                     {CATEGORIAS_GASTO.map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -387,13 +387,13 @@ export default function Caja({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Monto ($) *</label>
+                  <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Monto ($) *</label>
                   <input
                     type="number"
                     required
                     min="1"
                     placeholder="Monto gastado..."
-                    className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-brand-red font-mono font-bold focus:outline-none"
+                    className="w-full bg-[#181822] border border-white/[0.06] text-brand-red font-mono font-bold focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none"
                     value={monto}
                     onChange={(e) => setMonto(Number(e.target.value))}
                   />
@@ -401,13 +401,13 @@ export default function Caja({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Fecha del Movimiento *</label>
+                <label className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Fecha del Movimiento *</label>
                 <input
                   type="date"
                   required
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none"
+                  className="w-full bg-[#181822] border border-white/[0.06] text-white focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/50 rounded-xl px-3.5 py-2 text-xs transition duration-150 focus:outline-none font-mono"
                 />
               </div>
 
@@ -415,13 +415,13 @@ export default function Caja({
                 <button
                   type="button"
                   onClick={() => setIsAdding(false)}
-                  className="w-1/2 bg-[#2B2B2B] hover:bg-gray-700 text-white font-semibold py-2 rounded-xl"
+                  className="w-1/2 bg-[#181822] hover:bg-white/[0.04] border border-white/[0.06] text-white font-bold py-2 px-4 rounded-xl text-xs cursor-pointer transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 bg-brand-red hover:bg-red-800 text-white font-semibold py-2 rounded-xl"
+                  className="w-1/2 bg-brand-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl cursor-pointer transition shadow-lg shadow-brand-red/10"
                 >
                   Guardar Gasto
                 </button>
@@ -431,9 +431,9 @@ export default function Caja({
         )}
 
         {/* Expenses List Ledger */}
-        <div className={`p-5 bg-brand-card rounded-2xl border border-gray-800 ${isAdding ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-          <h3 className="text-base font-display font-extrabold text-white mb-4 flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-brand-red" />
+        <div className={`p-5 bg-brand-card rounded-3xl border border-white/[0.04] shadow-xl shadow-black/20 ${isAdding ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
+          <h3 className="text-sm font-mono uppercase text-gray-400 tracking-wider mb-4 flex items-center gap-2 border-b border-white/[0.05] pb-2 font-bold">
+            <ShoppingBag className="w-4 h-4 text-brand-red" />
             Egresos Operativos Registrados ({state.gastos.length})
           </h3>
 
@@ -441,11 +441,11 @@ export default function Caja({
             {state.gastos
               .sort((a,b) => b.fecha.localeCompare(a.fecha))
               .map(gst => (
-                <div key={gst.id} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center hover:border-gray-800 transition">
+                <div key={gst.id} className="p-3 bg-[#181822]/40 rounded-xl border border-white/[0.03] flex justify-between items-center hover:border-white/[0.08] transition duration-150">
                   <div className="space-y-1">
-                    <p className="font-semibold text-white text-sm">{gst.descripcion}</p>
-                    <div className="flex items-center gap-2 flex-wrap text-[10px] text-gray-400">
-                      <span className="bg-brand-red/10 text-brand-red font-mono px-1.5 py-0.5 rounded border border-brand-red/20">
+                    <p className="font-bold text-white text-xs font-display">{gst.descripcion}</p>
+                    <div className="flex items-center gap-2 flex-wrap text-[9px] text-gray-400">
+                      <span className="bg-brand-red/10 text-brand-red font-mono px-1.5 py-0.5 rounded border border-brand-red/20 text-[8px] uppercase font-bold">
                         {gst.categoria}
                       </span>
                       <span>&bull;</span>
@@ -462,7 +462,7 @@ export default function Caja({
                     </span>
                     <button
                       onClick={() => setGastoToDelete(gst)}
-                      className="p-1.5 bg-brand-card hover:bg-brand-red/10 text-brand-red/70 hover:text-brand-red border border-gray-800 rounded-lg hover:border-brand-red/20 transition"
+                      className="p-1.5 bg-[#181822] hover:bg-brand-red/10 text-brand-red/70 hover:text-brand-red border border-white/[0.06] rounded-xl hover:border-brand-red/20 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -479,23 +479,23 @@ export default function Caja({
 
       {/* Daily Closing Dialog Modal */}
       {showClosingModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl animate-scaleUp text-xs sm:text-sm">
-            <div className="flex items-center justify-between border-b border-gray-850 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#0F0F15] rounded-3xl border border-white/[0.04] p-6 space-y-6 shadow-2xl shadow-black/60 text-xs sm:text-sm">
+            <div className="flex items-center justify-between border-b border-white/[0.05] pb-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-brand-success" />
                 <h3 className="text-lg font-display font-black text-white">Arqueo & Cierre de Caja Diario</h3>
               </div>
               <button 
                 onClick={() => setShowClosingModal(false)}
-                className="text-gray-400 hover:text-white font-bold"
+                className="text-gray-400 hover:text-white font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {/* Receipt visualization */}
-            <div className="bg-black/40 border border-gray-850 rounded-xl p-4 font-mono text-gray-300 space-y-1 text-xs whitespace-pre-wrap select-all">
+            <div className="bg-[#0B0B0E] border border-white/[0.03] rounded-xl p-4 font-mono text-gray-300 space-y-1 text-xs whitespace-pre-wrap select-all shadow-inner">
               {generateClosingText()}
             </div>
 
@@ -504,7 +504,7 @@ export default function Caja({
               <button
                 type="button"
                 onClick={copyToClipboard}
-                className="flex-1 bg-brand-card border border-gray-750 hover:border-brand-red/40 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition"
+                className="flex-1 bg-[#181822] hover:bg-white/[0.04] text-white border border-white/[0.06] font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Copy className="w-4 h-4 text-brand-red" />
                 {hasCopied ? '¡Copiado!' : 'Copiar Reporte'}
@@ -512,7 +512,7 @@ export default function Caja({
               <button
                 type="button"
                 onClick={handleSendClosingWhatsApp}
-                className="flex-1 bg-brand-success hover:bg-green-700 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition"
+                className="flex-1 bg-brand-success hover:bg-green-700 text-white font-extrabold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-lg shadow-brand-success/10"
               >
                 <Share2 className="w-4 h-4" />
                 Mandar por WhatsApp
@@ -520,7 +520,7 @@ export default function Caja({
               <button
                 type="button"
                 onClick={() => setShowClosingModal(false)}
-                className="flex-1 bg-brand-card-light border border-gray-800 text-gray-400 hover:text-white font-bold text-xs py-3 rounded-xl transition"
+                className="flex-1 bg-[#181822] hover:bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white font-bold text-xs py-3 rounded-xl transition cursor-pointer"
               >
                 Cerrar Ventana
               </button>
@@ -531,14 +531,14 @@ export default function Caja({
 
       {/* Delete confirmation */}
       {gastoToDelete !== null && (
-        <div id="confirm-delete-gasto-modal" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-6 shadow-2xl">
+        <div id="confirm-delete-gasto-modal" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#0F0F15] rounded-3xl border border-white/[0.04] p-6 space-y-6 shadow-2xl shadow-black/60">
             <div className="text-center space-y-2">
-              <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
+              <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/20 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
                 <Trash2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-display font-black text-white">¿Eliminar Gasto?</h3>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 leading-relaxed">
                 ¿Seguro que deseas eliminar el gasto operativo <span className="font-bold text-white">"{gastoToDelete.descripcion}"</span> por un monto de <span className="font-bold text-brand-red font-mono">${gastoToDelete.monto.toLocaleString('es-AR')}</span>?
               </p>
             </div>
@@ -546,7 +546,7 @@ export default function Caja({
               <button
                 type="button"
                 onClick={() => setGastoToDelete(null)}
-                className="flex-1 bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs py-3 rounded-xl transition-all"
+                className="flex-1 bg-[#181822] hover:bg-white/[0.04] text-white border border-white/[0.06] font-bold text-xs py-3 rounded-xl transition cursor-pointer"
               >
                 Cancelar
               </button>
@@ -556,7 +556,7 @@ export default function Caja({
                   onDeleteGasto(gastoToDelete.id);
                   setGastoToDelete(null);
                 }}
-                className="flex-1 bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl transition-all"
+                className="flex-1 bg-brand-red hover:bg-red-700 text-white font-extrabold text-xs py-3 rounded-xl transition cursor-pointer shadow-lg shadow-brand-red/10"
               >
                 Eliminar
               </button>

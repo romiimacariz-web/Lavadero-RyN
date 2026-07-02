@@ -37,6 +37,9 @@ import Caja from './components/Caja';
 import Reports from './components/Reports';
 import SelfService from './components/SelfService';
 import Catalogo from './components/Catalogo';
+import Login from './components/Login';
+import { LoadingScreen, SkeletonCard, ForbiddenScreen, ToastContainer, ToastMessage, WhatsAppModal } from './components/Feedback';
+import { useAuth } from './contexts/AuthContext';
 
 // Icons
 import { 
@@ -57,12 +60,51 @@ import {
   LogOut,
   UserCheck,
   ClipboardList,
-  Lock
+  Lock,
+  Clock,
+  Menu
 } from 'lucide-react';
 import { getWhatsAppHref, getConfirmationMessage, getVehicleReadyMessage, getInactiveGreetingMessage } from './utils/whatsapp';
 
 export default function App() {
-  const [dbState, setDbState] = useState<DatabaseState>(getInitialState());
+  const { user, usuario, loading: authLoading, logout } = useAuth();
+  
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const addToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => {
+    setToasts(prev => [...prev, { id: Math.random().toString(), type, title, message }]);
+  };
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Clock state for SaaS header
+  const [currentTime, setCurrentTime] = useState<string>('');
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const [dbState, setDbState] = useState<DatabaseState>({
+    ...getInitialState(),
+    currentRole: 'Empleado'
+  });
   const [activeTab, setActiveTab] = useState<string>('Inicio');
   const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
 
@@ -282,7 +324,7 @@ export default function App() {
   };
 
   // CLIENTS ACTIONS
-  const handleAddCliente = (cliData: Omit<Cliente, 'id' | 'fechaRegistro'>) => {
+  const handleAddCliente = async (cliData: Omit<Cliente, 'id' | 'fechaRegistro'>) => {
     const newId = `cli-${Date.now()}`;
     const today = new Date().toISOString().split('T')[0];
     const newCliente: Cliente = {
@@ -290,97 +332,244 @@ export default function App() {
       id: newId,
       fechaRegistro: today
     };
-    createOrUpdateCliente(newCliente);
+    try {
+      await createOrUpdateCliente(newCliente);
+      addToast('success', 'Cliente Registrado', `El cliente ${cliData.nombre} ha sido agregado correctamente.`);
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo registrar el cliente.');
+    }
   };
 
-  const handleUpdateCliente = (updatedCli: Cliente) => {
-    createOrUpdateCliente(updatedCli);
+  const handleUpdateCliente = async (updatedCli: Cliente) => {
+    try {
+      await createOrUpdateCliente(updatedCli);
+      addToast('success', 'Cliente Actualizado', `Los datos de ${updatedCli.nombre} fueron actualizados.`);
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo actualizar el cliente.');
+    }
   };
 
   const handleDeleteCliente = (id: string) => {
-    deleteClienteFromDb(id);
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite eliminar información.');
+      return;
+    }
+    setDeleteConfirm({
+      open: true,
+      title: 'Eliminar Cliente',
+      message: '¿Está seguro que desea eliminar este cliente? Se borrará el registro de forma permanente.',
+      onConfirm: async () => {
+        try {
+          await deleteClienteFromDb(id);
+          addToast('success', 'Cliente Eliminado', 'El cliente ha sido eliminado.');
+        } catch (err) {
+          addToast('error', 'Error', 'No se pudo eliminar el cliente.');
+        }
+        setDeleteConfirm(prev => ({ ...prev, open: false }));
+      }
+    });
   };
 
   // VEHICLES ACTIONS
-  const handleAddVehiculo = (veh: Vehiculo) => {
-    createOrUpdateVehiculo(veh);
+  const handleAddVehiculo = async (veh: Vehiculo) => {
+    try {
+      await createOrUpdateVehiculo(veh);
+      addToast('success', 'Vehículo Registrado', `El vehículo patente ${veh.matricula} ha sido registrado.`);
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo registrar el vehículo.');
+    }
   };
 
-  const handleUpdateVehiculo = (updatedVeh: Vehiculo) => {
-    createOrUpdateVehiculo(updatedVeh);
+  const handleUpdateVehiculo = async (updatedVeh: Vehiculo) => {
+    try {
+      await createOrUpdateVehiculo(updatedVeh);
+      addToast('success', 'Vehículo Actualizado', `El vehículo ${updatedVeh.matricula} fue actualizado.`);
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo actualizar el vehículo.');
+    }
   };
 
   const handleDeleteVehiculo = (plate: string) => {
-    deleteVehiculoFromDb(plate);
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite eliminar información.');
+      return;
+    }
+    setDeleteConfirm({
+      open: true,
+      title: 'Eliminar Vehículo',
+      message: '¿Está seguro que desea eliminar este vehículo? Esta acción no se puede deshacer.',
+      onConfirm: async () => {
+        try {
+          await deleteVehiculoFromDb(plate);
+          addToast('success', 'Vehículo Eliminado', `El vehículo ${plate} ha sido eliminado.`);
+        } catch (err) {
+          addToast('error', 'Error', 'No se pudo eliminar el vehículo.');
+        }
+        setDeleteConfirm(prev => ({ ...prev, open: false }));
+      }
+    });
   };
 
   // RESERVATIONS BOOKINGS ACTIONS
-  const handleAddReserva = (resData: Omit<Reserva, 'id'>) => {
+  const handleAddReserva = async (resData: Omit<Reserva, 'id'>) => {
     const newId = `res-${Date.now()}`;
     const newRes: Reserva = {
       ...resData,
       id: newId
     };
-    createOrUpdateReserva(newRes);
+    try {
+      await createOrUpdateReserva(newRes);
+      addToast('success', 'Turno Agendado', 'La reserva se creó con éxito.');
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo agendar el turno.');
+    }
   };
 
-  const handleUpdateReserva = (updatedRes: Reserva) => {
-    createOrUpdateReserva(updatedRes);
+  const handleUpdateReserva = async (updatedRes: Reserva) => {
+    try {
+      await createOrUpdateReserva(updatedRes);
+      addToast('success', 'Turno Actualizado', 'El turno ha sido modificado.');
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo modificar el turno.');
+    }
   };
 
-  const handleUpdateReservaState = (reservaId: string, newState: ReservaEstado) => {
+  const handleUpdateReservaState = async (reservaId: string, newState: ReservaEstado) => {
     const res = dbState.reservas.find(r => r.id === reservaId);
     if (res) {
-      createOrUpdateReserva({ ...res, estado: newState });
+      try {
+        await createOrUpdateReserva({ ...res, estado: newState });
+        addToast('success', 'Turno Actualizado', `El estado del turno es: ${newState}`);
+      } catch (err) {
+        addToast('error', 'Error', 'No se pudo actualizar el estado del turno.');
+      }
     }
   };
 
   const handleDeleteReserva = (id: string) => {
-    deleteReservaFromDb(id);
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite eliminar información.');
+      return;
+    }
+    setDeleteConfirm({
+      open: true,
+      title: 'Eliminar Turno',
+      message: '¿Está seguro que desea borrar esta reserva de la agenda?',
+      onConfirm: async () => {
+        try {
+          await deleteReservaFromDb(id);
+          addToast('success', 'Turno Eliminado', 'La reserva fue cancelada y borrada.');
+        } catch (err) {
+          addToast('error', 'Error', 'No se pudo borrar la reserva.');
+        }
+        setDeleteConfirm(prev => ({ ...prev, open: false }));
+      }
+    });
   };
 
   // COMPLETED SERVICES ACTIONS
-  const handleAddServicio = (srvData: Omit<ServicioRealizado, 'id'>) => {
+  const handleAddServicio = async (srvData: Omit<ServicioRealizado, 'id'>) => {
     const newId = `srv-${Date.now()}`;
     const newSrv: ServicioRealizado = {
       ...srvData,
       id: newId
     };
-    // If this service matches a reservation for the plate, mark it finalized!
-    dbState.reservas.forEach(r => {
-      if (r.vehiculoMatricula.toUpperCase() === srvData.vehiculoMatricula.toUpperCase() && r.estado !== 'Cancelado') {
-        createOrUpdateReserva({ ...r, estado: 'Finalizado' });
+    try {
+      // If this service matches a reservation for the plate, mark it finalized!
+      const matchingReservas = dbState.reservas.filter(
+        r => r.vehiculoMatricula.toUpperCase() === srvData.vehiculoMatricula.toUpperCase() && r.estado !== 'Cancelado'
+      );
+      
+      if (matchingReservas.length > 0) {
+        await Promise.all(
+          matchingReservas.map(r => createOrUpdateReserva({ ...r, estado: 'Finalizado' }))
+        );
       }
-    });
 
-    createOrUpdateServicio(newSrv);
+      await createOrUpdateServicio(newSrv);
+      addToast('success', 'Servicio Registrado', 'El servicio realizado fue facturado con éxito.');
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo facturar el servicio.');
+    }
   };
 
   const handleDeleteServicio = (id: string) => {
-    deleteServicioFromDb(id);
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite eliminar información.');
+      return;
+    }
+    setDeleteConfirm({
+      open: true,
+      title: 'Eliminar Registro de Servicio',
+      message: '¿Está seguro que desea eliminar este registro de servicio facturado? Esto afectará los totales de caja.',
+      onConfirm: async () => {
+        try {
+          await deleteServicioFromDb(id);
+          addToast('success', 'Registro Eliminado', 'El servicio facturado fue eliminado de caja.');
+        } catch (err) {
+          addToast('error', 'Error', 'No se pudo borrar el registro.');
+        }
+        setDeleteConfirm(prev => ({ ...prev, open: false }));
+      }
+    });
   };
 
   // SERVICES CATALOG ACTIONS
-  const handleUpdateCatalogo = (newCatalogo: CatalogoServicio[]) => {
-    saveCatalogoToDb(newCatalogo);
+  const handleUpdateCatalogo = async (newCatalogo: CatalogoServicio[]) => {
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite modificar el catálogo de servicios.');
+      return;
+    }
+    try {
+      await saveCatalogoToDb(newCatalogo);
+      addToast('success', 'Catálogo Actualizado', 'Los servicios del catálogo fueron actualizados.');
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo guardar el catálogo.');
+    }
   };
 
   // EXPENSES GASTOS ACTIONS
-  const handleAddGasto = (gstData: Omit<Gasto, 'id'>) => {
+  const handleAddGasto = async (gstData: Omit<Gasto, 'id'>) => {
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite registrar gastos.');
+      return;
+    }
     const newId = `gst-${Date.now()}`;
     const newGst: Gasto = {
       ...gstData,
       id: newId
     };
-    createOrUpdateGasto(newGst);
+    try {
+      await createOrUpdateGasto(newGst);
+      addToast('success', 'Gasto Registrado', 'El egreso fue cargado correctamente.');
+    } catch (err) {
+      addToast('error', 'Error', 'No se pudo registrar el gasto.');
+    }
   };
 
   const handleDeleteGasto = (id: string) => {
-    deleteGastoFromDb(id);
+    if (usuario && usuario.rol === 'Empleado') {
+      addToast('error', 'Permiso Denegado', 'Su rol de Empleado no permite eliminar información.');
+      return;
+    }
+    setDeleteConfirm({
+      open: true,
+      title: 'Eliminar Gasto',
+      message: '¿Está seguro que desea eliminar este gasto? Se recalculará la caja diaria.',
+      onConfirm: async () => {
+        try {
+          await deleteGastoFromDb(id);
+          addToast('success', 'Gasto Eliminado', 'El gasto fue borrado.');
+        } catch (err) {
+          addToast('error', 'Error', 'No se pudo borrar el gasto.');
+        }
+        setDeleteConfirm(prev => ({ ...prev, open: false }));
+      }
+    });
   };
 
   // SELF SERVICE CUSTOMER ACTION CHANGER
-  const handleAddBookingSelfService = (
+  const handleAddBookingSelfService = async (
     clienteNombre: string,
     clienteTelefono: string,
     vehiculoMatricula: string,
@@ -392,7 +581,7 @@ export default function App() {
     hora: string,
     servicioSol: string,
     observaciones?: string
-  ): Reserva => {
+  ): Promise<Reserva> => {
     const cleanPhone = clienteTelefono.trim().replace(/\s+/g, '');
     let client = dbState.clientes.find(
       c => c.telefono.replace(/\s+/g, '') === cleanPhone ||
@@ -411,7 +600,7 @@ export default function App() {
         whatsapp: clienteTelefono,
         fechaRegistro: new Date().toISOString().split('T')[0]
       };
-      createOrUpdateCliente(newCliente);
+      await createOrUpdateCliente(newCliente);
       finalClienteId = newClientId;
     }
 
@@ -427,7 +616,7 @@ export default function App() {
         clienteId: finalClienteId,
         fotosUrl: []
       };
-      createOrUpdateVehiculo(newVeh);
+      await createOrUpdateVehiculo(newVeh);
     }
 
     const newResId = `res-${Date.now()}`;
@@ -442,7 +631,7 @@ export default function App() {
       observaciones: observaciones
     };
     
-    createOrUpdateReserva(newRes);
+    await createOrUpdateReserva(newRes);
 
     return newRes;
   };
@@ -497,90 +686,60 @@ export default function App() {
   };
 
   // Bottom simple navigation layout choices
-  // Hide Caja & Reportes entirely for "Empleado" to fulfill strict user roles check
+  // Hide Caja, Reportes & Configuración entirely for "Empleado" to fulfill strict user roles check
   const MENU_TABS = [
     { label: 'Inicio', icon: LayoutDashboard },
     { label: 'Clientes', icon: Users },
     { label: 'Vehículos', icon: Car },
     { label: 'Agenda', icon: CalendarDays },
     { label: 'Servicios', icon: CheckCircle2 },
-    { label: 'Configuración', icon: ClipboardList },
     ...(dbState.currentRole === 'Administrador' ? [
       { label: 'Caja', icon: DollarSign },
-      { label: 'Reportes', icon: BarChart4 }
-    ] : [])
+      { label: 'Reportes', icon: BarChart4 },
+      { label: 'Configuración', icon: ClipboardList }
+    ] : []),
+    { label: 'Autoservicio', icon: Smartphone }
   ];
 
   const isPublicAutoservicio = currentPath === '/autoservicio' || window.location.hash === '#/autoservicio';
 
-  if (isPublicAutoservicio || dbState.currentRole === 'Autoservicio') {
+  if (authLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user && !isPublicAutoservicio) {
+    return (
+      <div id="lavadero-ryn-app" className="min-h-screen bg-[#07070A] flex items-center justify-center p-4 relative overflow-hidden select-none">
+        <Login onSuccess={() => addToast('success', 'Bienvenido', 'Has ingresado correctamente al panel de Lavadero RyN.')} />
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </div>
+    );
+  }
+
+  if (isPublicAutoservicio || dbState.currentRole === 'Autoservicio' || activeTab === 'Autoservicio') {
     return (
       <div id="lavadero-ryn-app" className="min-h-screen bg-brand-bg text-white p-4 sm:p-6 md:p-8 flex flex-col justify-center relative select-none">
         <SelfService 
           state={dbState}
           onAddBooking={handleAddBookingSelfService}
           onTriggerWhatsApp={handleTriggerWhatsApp}
-          onExit={() => handleToggleRole('Administrador')}
+          onExit={() => {
+            setActiveTab('Inicio');
+            setDbState(prev => ({ ...prev, currentRole: usuario?.rol || 'Empleado' }));
+          }}
           isPublicRoute={isPublicAutoservicio}
         />
 
-        {/* WhatsApp Message Drafting dialog drawer */}
-        {whatsAppModal.open && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-brand-card rounded-2xl border border-gray-800 shadow-2xl p-6 relative space-y-4">
-              <button
-                onClick={() => setWhatsAppModal({ open: false, phone: '', text: '' })}
-                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-brand-card-light text-gray-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center gap-3 border-b border-gray-800 pb-3">
-                <div className="p-2.5 bg-[#28A745]/15 border border-[#28A745]/30 text-[#28A745] rounded-xl shrink-0">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-display font-black text-white text-base">Enviar por WhatsApp</h4>
-                  <p className="text-[10px] text-gray-400 font-mono">Destinatario: {whatsAppModal.phone}</p>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Contenido de la plantilla:</label>
-                <textarea
-                  className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-4 py-3 text-white text-xs min-h-[110px] focus:outline-none focus:ring-1 focus:ring-[#28A745] leading-relaxed"
-                  value={whatsAppModal.text}
-                  onChange={(e) => setWhatsAppModal({ ...whatsAppModal, text: e.target.value })}
-                ></textarea>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  onClick={handleCopyMessage}
-                  className="bg-[#2B2B2B] hover:bg-gray-700 text-white font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 border border-gray-855"
-                >
-                  <Copy className="w-4 h-4 text-brand-warning" />
-                  <span>{copySuccess ? 'Copiado! ✔' : 'Copiar Texto'}</span>
-                </button>
-
-                <a
-                  href={getWhatsAppHref(whatsAppModal.phone, whatsAppModal.text)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setWhatsAppModal({ open: false, phone: '', text: '' })}
-                  className="bg-[#28A745] hover:bg-green-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-green-500/20 text-center"
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>Enviar Directo</span>
-                </a>
-              </div>
-
-              <p className="text-[10px] text-center text-gray-500">
-                * El botón "Enviar Directo" abrirá una nueva pestaña de chat en WhatsApp Web o en tu aplicación móvil con el mensaje pre-cargado.
-              </p>
-            </div>
-          </div>
-        )}
+        <WhatsAppModal
+          open={whatsAppModal.open}
+          phone={whatsAppModal.phone}
+          text={whatsAppModal.text}
+          copySuccess={copySuccess}
+          onChangeText={(txt) => setWhatsAppModal({ ...whatsAppModal, text: txt })}
+          onCopy={handleCopyMessage}
+          onClose={() => setWhatsAppModal({ open: false, phone: '', text: '' })}
+          onGetWhatsAppHref={getWhatsAppHref}
+        />
       </div>
     );
   }
@@ -589,75 +748,68 @@ export default function App() {
     <div id="lavadero-ryn-app" className="min-h-screen flex flex-col md:flex-row select-none font-sans bg-brand-bg text-white">
       
       {/* SIDEBAR PARA ESCRITORIO (Visible en md+) */}
-      <aside className="hidden md:flex md:flex-col md:w-64 bg-brand-black border-r border-gray-800/50 shrink-0 p-5 space-y-6">
+      <aside className="hidden md:flex md:flex-col md:w-64 bg-brand-black border-r border-white/[0.04] shrink-0 p-5 space-y-6 relative overflow-hidden">
+        {/* Soft background glow effect */}
+        <div className="absolute top-0 left-0 w-32 h-32 bg-brand-red/5 rounded-full blur-2xl pointer-events-none"></div>
+        
         {/* Logo & Marca */}
-        <div className="flex items-center gap-3 py-1">
+        <div className="flex items-center gap-3 py-1.5 z-10">
           <img 
             src="/src/assets/images/lavadero_ryn_logo_1782222462483.jpg" 
             alt="Lavadero RyN Logo" 
-            className="w-10 h-10 object-cover rounded-xl border border-brand-red/20 shadow-md"
+            className="w-10 h-10 object-cover rounded-xl border border-white/[0.08] shadow-lg shadow-black/40"
             referrerPolicy="no-referrer"
           />
           <div className="flex flex-col">
-            <span className="font-display font-extrabold text-sm tracking-widest text-white leading-none">
+            <span className="font-display font-black text-xs tracking-[0.15em] text-white leading-none uppercase">
               LAVADERO <span className="text-brand-red">RyN</span>
             </span>
-            <span className="text-[10px] text-gray-500 font-mono tracking-wider mt-1 uppercase">SaaS Premium</span>
+            <span className="text-[9px] text-gray-500 font-mono tracking-wider mt-1 uppercase font-bold">Workspace Pro</span>
           </div>
         </div>
 
-        {/* Selector de Rol de Operario */}
-        <div className="space-y-2">
-          <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider px-1">Operario activo:</div>
-          <div className="flex flex-col bg-brand-card/30 p-1 rounded-xl border border-gray-800/80 gap-1">
+        {/* Perfil del Operario */}
+        <div className="bg-[#12121A]/80 p-3.5 rounded-2xl border border-white/[0.05] space-y-3.5 shadow-xl shadow-black/20 z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-brand-red/10 border border-brand-red/30 rounded-xl flex items-center justify-center font-display font-black text-xs text-brand-red select-none shrink-0 shadow-inner">
+              {usuario?.nombre?.substring(0, 2).toUpperCase() || 'OP'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-white truncate leading-tight font-display tracking-tight">{usuario?.nombre || 'Operador'}</h4>
+              <p className="text-[9px] text-gray-500 truncate font-mono mt-0.5">{usuario?.email || user?.email}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between border-t border-white/[0.05] pt-2.5">
+            <span className={`text-[8px] uppercase tracking-widest font-mono font-extrabold px-2 py-0.5 rounded-md ${
+              usuario?.rol === 'Administrador' 
+                ? 'bg-brand-red/10 border border-brand-red/20 text-brand-red' 
+                : 'bg-amber-500/10 border border-amber-500/20 text-amber-500'
+            }`}>
+              {usuario?.rol || 'Empleado'}
+            </span>
             <button
-              onClick={() => handleToggleRole('Administrador')}
-              className={`w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-between ${
-                dbState.currentRole === 'Administrador' 
-                  ? 'bg-brand-red text-white shadow-sm' 
-                  : 'text-gray-400 hover:text-white hover:bg-brand-card-light/40'
-              }`}
+              onClick={() => logout().then(() => addToast('info', 'Sesión Cerrada', 'Has cerrado sesión correctamente.'))}
+              title="Cerrar Sesión"
+              className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-brand-red/15 border border-white/[0.05] hover:border-brand-red/30 text-gray-400 hover:text-brand-red transition-all cursor-pointer"
             >
-              <span className="flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </span>
-              {dbState.currentRole === 'Administrador' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-            </button>
-            <button
-              onClick={() => handleToggleRole('Empleado')}
-              className={`w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-between ${
-                dbState.currentRole === 'Empleado' 
-                  ? 'bg-brand-warning text-black shadow-sm' 
-                  : 'text-gray-400 hover:text-white hover:bg-brand-card-light/40'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <ClipboardList className="w-3.5 h-3.5" />
-                <span>Empleado</span>
-              </span>
-              {dbState.currentRole === 'Empleado' && <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />}
-            </button>
-            <button
-              onClick={() => handleToggleRole('Autoservicio')}
-              className={`w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-between ${
-                dbState.currentRole === 'Autoservicio' 
-                  ? 'bg-brand-success text-white shadow-sm' 
-                  : 'text-gray-400 hover:text-white hover:bg-brand-card-light/40'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Autoservicio</span>
-              </span>
-              {dbState.currentRole === 'Autoservicio' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
+        </div>
+
+        {/* Digital Clock */}
+        <div className="bg-[#12121A]/50 px-3.5 py-2 rounded-xl border border-white/[0.04] flex items-center justify-between gap-2 z-10">
+          <div className="flex items-center gap-2 text-gray-400">
+            <Clock className="w-3.5 h-3.5 text-brand-red" />
+            <span className="text-[9px] font-mono uppercase tracking-widest font-bold text-gray-500">Reloj SaaS:</span>
+          </div>
+          <span className="text-xs font-mono font-bold text-white tracking-widest">{currentTime || '00:00:00'}</span>
         </div>
 
         {/* Navegación lateral principal */}
-        <div className="flex-1 space-y-1 overflow-y-auto">
-          <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-2.5 px-1">Módulos</div>
+        <div className="flex-1 space-y-1.5 overflow-y-auto z-10">
+          <div className="text-[9px] text-gray-500 font-mono uppercase tracking-widest mb-3 px-1 font-extrabold">Módulos</div>
           {MENU_TABS.map(tab => {
             const IconComponent = tab.icon;
             const isActive = activeTab === tab.label;
@@ -666,23 +818,23 @@ export default function App() {
               <button
                 key={tab.label}
                 onClick={() => setActiveTab(tab.label)}
-                className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-xl transition-all relative ${
                   isActive 
-                    ? 'text-brand-red bg-brand-red/10 font-bold border-l-2 border-brand-red pl-2.5' 
-                    : 'text-gray-400 hover:text-white hover:bg-brand-card/40'
+                    ? 'text-white bg-white/[0.04] border-l-2 border-brand-red pl-2.5 shadow-sm shadow-white/5' 
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
                 }`}
               >
-                <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-brand-red' : ''}`} />
-                <span>{tab.label}</span>
+                <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-brand-red' : 'text-gray-500'}`} />
+                <span className="font-display tracking-tight">{tab.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* Footer del Sidebar con info del negocio */}
-        <div className="border-t border-gray-800/80 pt-4 text-center">
-          <h5 className="text-[11px] font-display font-bold text-gray-300">{dbState.nombreNegocio || 'Lavadero RyN'}</h5>
-          <p className="text-[9px] text-gray-500 mt-0.5 truncate">{dbState.direccionNegocio || 'Av. San Martín 1500'}</p>
+        <div className="border-t border-white/[0.04] pt-4 text-center z-10">
+          <h5 className="text-[10px] font-display font-bold text-gray-400 uppercase tracking-widest">{dbState.nombreNegocio || 'Lavadero RyN'}</h5>
+          <p className="text-[9px] text-gray-500 mt-1 truncate font-mono">{dbState.direccionNegocio || 'Av. San Martín 1500'}</p>
         </div>
       </aside>
 
@@ -695,42 +847,28 @@ export default function App() {
             className="w-8 h-8 object-cover rounded-lg border border-brand-red/30 shadow-md"
             referrerPolicy="no-referrer"
           />
-          <span className="font-display font-extrabold text-sm text-white leading-none tracking-widest">
-            LAVADERO <span className="text-brand-red">RyN</span>
-          </span>
+          <div className="flex flex-col">
+            <span className="font-display font-extrabold text-xs text-white leading-none tracking-widest">
+              LAVADERO <span className="text-brand-red">RyN</span>
+            </span>
+            <span className="text-[9px] text-gray-500 font-mono mt-0.5 truncate max-w-[110px]">{usuario?.nombre || 'Operador'}</span>
+          </div>
         </div>
 
-        {/* Compact switcher de roles en móvil */}
-        <div className="flex bg-brand-card p-0.5 rounded-lg border border-gray-800">
+        {/* Info de sesión móvil */}
+        <div className="flex items-center gap-3">
+          <span className={`text-[9px] uppercase tracking-wider font-mono font-bold px-1.5 py-0.5 rounded-md ${
+            usuario?.rol === 'Administrador' 
+              ? 'bg-brand-red/10 text-brand-red' 
+              : 'bg-amber-500/10 text-amber-500'
+          }`}>
+            {usuario?.rol === 'Administrador' ? 'Admin' : 'Emp'}
+          </span>
           <button
-            onClick={() => handleToggleRole('Administrador')}
-            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
-              dbState.currentRole === 'Administrador' 
-                ? 'bg-brand-red text-white' 
-                : 'text-gray-400'
-            }`}
+            onClick={() => logout().then(() => addToast('info', 'Sesión Cerrada', 'Has cerrado sesión correctamente.'))}
+            className="p-2 rounded-lg bg-[#14141A] hover:bg-brand-red/10 border border-gray-800 text-gray-400 hover:text-brand-red transition"
           >
-            Admin
-          </button>
-          <button
-            onClick={() => handleToggleRole('Empleado')}
-            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
-              dbState.currentRole === 'Empleado' 
-                ? 'bg-brand-warning text-black' 
-                : 'text-gray-400'
-            }`}
-          >
-            Emp
-          </button>
-          <button
-            onClick={() => handleToggleRole('Autoservicio')}
-            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
-              dbState.currentRole === 'Autoservicio' 
-                ? 'bg-brand-success text-white' 
-                : 'text-gray-400'
-            }`}
-          >
-            Auto
+            <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
@@ -842,63 +980,16 @@ export default function App() {
         </div>
       </nav>
 
-      {/* WhatsApp Message Drafting dialog drawer */}
-      {whatsAppModal.open && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-brand-card rounded-2xl border border-gray-800 shadow-2xl p-6 relative space-y-4">
-            <button
-              onClick={() => setWhatsAppModal({ open: false, phone: '', text: '' })}
-              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-brand-card-light text-gray-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 border-b border-gray-800 pb-3">
-              <div className="p-2.5 bg-[#28A745]/15 border border-[#28A745]/30 text-[#28A745] rounded-xl shrink-0">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-display font-black text-white text-base">Enviar por WhatsApp</h4>
-                <p className="text-[10px] text-gray-400 font-mono">Destinatario: {whatsAppModal.phone}</p>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-gray-400 uppercase tracking-wider">Contenido de la plantilla:</label>
-              <textarea
-                className="w-full bg-brand-card-light border border-gray-800 rounded-xl px-4 py-3 text-white text-xs min-h-[110px] focus:outline-none focus:ring-1 focus:ring-[#28A745] leading-relaxed"
-                value={whatsAppModal.text}
-                onChange={(e) => setWhatsAppModal({ ...whatsAppModal, text: e.target.value })}
-              ></textarea>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                onClick={handleCopyMessage}
-                className="bg-[#2B2B2B] hover:bg-gray-700 text-white font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 border border-gray-850"
-              >
-                <Copy className="w-4 h-4 text-brand-warning" />
-                <span>{copySuccess ? 'Copiado! ✔' : 'Copiar Texto'}</span>
-              </button>
-
-              <a
-                href={getWhatsAppHref(whatsAppModal.phone, whatsAppModal.text)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setWhatsAppModal({ open: false, phone: '', text: '' })}
-                className="bg-[#28A745] hover:bg-green-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-green-500/20 text-center"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span>Enviar Directo</span>
-              </a>
-            </div>
-
-            <p className="text-[10px] text-center text-gray-500">
-              * El botón "Enviar Directo" abrirá una nueva pestaña de chat en WhatsApp Web o en tu aplicación móvil con el mensaje pre-cargado.
-            </p>
-          </div>
-        </div>
-      )}
+      <WhatsAppModal
+        open={whatsAppModal.open}
+        phone={whatsAppModal.phone}
+        text={whatsAppModal.text}
+        copySuccess={copySuccess}
+        onChangeText={(txt) => setWhatsAppModal({ ...whatsAppModal, text: txt })}
+        onCopy={handleCopyMessage}
+        onClose={() => setWhatsAppModal({ open: false, phone: '', text: '' })}
+        onGetWhatsAppHref={getWhatsAppHref}
+      />
 
       {/* Modal para verificar contraseña de administración */}
       {showAdminPasswordModal && (
@@ -971,6 +1062,40 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Custom Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Modern Custom Delete Confirmation Modal */}
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-150 bg-black/85 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-brand-card rounded-2xl border border-gray-800 p-6 space-y-5 shadow-2xl">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-brand-red/10 border border-brand-red/30 text-brand-red rounded-full flex items-center justify-center mx-auto mb-2">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-display font-black text-white">{deleteConfirm.title}</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">{deleteConfirm.message}</p>
+            </div>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(prev => ({ ...prev, open: false }))}
+                className="flex-1 bg-[#2B2B2B] hover:bg-gray-700 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={deleteConfirm.onConfirm}
+                className="flex-1 bg-brand-red hover:bg-red-800 text-white font-black text-xs py-3 rounded-xl transition-all uppercase tracking-wider cursor-pointer"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

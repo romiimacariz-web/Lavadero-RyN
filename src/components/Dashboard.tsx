@@ -342,28 +342,28 @@ export default function Dashboard({
     <div className="space-y-6">
       
       {/* 2.0 Professional Banner Header */}
-      <div className="p-6 bg-brand-card rounded-3xl border border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+      <div className="p-6 bg-brand-card rounded-3xl border border-white/[0.04] flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden shadow-2xl shadow-black/40">
         <div className="absolute top-0 right-0 w-80 h-80 bg-brand-red/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="space-y-1.5 z-10">
           <div className="flex items-center gap-2">
-            <span className="bg-brand-red text-white text-[10px] font-mono font-black px-2 py-0.5 rounded-full tracking-wider uppercase flex items-center gap-1 shadow shadow-brand-red/10">
-              <Zap className="w-3 h-3 animate-bounce" /> SaaS v2.0
+            <span className="bg-brand-red text-white text-[9px] font-mono font-black px-2.5 py-0.5 rounded-full tracking-wider uppercase flex items-center gap-1 shadow-lg shadow-brand-red/20">
+              <Zap className="w-3 h-3 animate-pulse text-white" /> SaaS v2.0
             </span>
-            <p className="text-xs text-brand-red font-semibold font-mono tracking-wider">Centro de Mando Pro</p>
+            <p className="text-xs text-brand-red font-semibold font-mono tracking-widest uppercase">Centro de Mando Pro</p>
           </div>
-          <h1 className="text-2xl font-display font-extrabold tracking-tight text-white">
+          <h1 className="text-2xl font-display font-black tracking-tight text-white">
             {state.nombreNegocio || 'Lavadero RyN'}
           </h1>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 font-medium font-sans">
             {state.horarios || 'Lunes a Sábado de 08:00 a 20:00'} &bull; {state.direccionNegocio || 'Av. San Martín 1500'}
           </p>
         </div>
-
+ 
         {/* Global search launcher bar */}
         <div className="w-full md:max-w-xs relative z-10">
           <input
             type="text"
-            className="block w-full pl-9 pr-4 py-2.5 text-xs border border-gray-800 rounded-xl bg-brand-card-light text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-red font-sans"
+            className="block w-full pl-9 pr-4 py-2.5 premium-input placeholder-gray-500 font-sans shadow-lg shadow-black/20"
             placeholder="Buscar patentes, clientes o reservas..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
@@ -381,52 +381,52 @@ export default function Dashboard({
           )}
         </div>
       </div>
-
+ 
       {/* Global Interactive Search Drawer Overlay */}
       {showSearchResults && (
-        <div className="p-5 bg-brand-card border border-brand-red/30 rounded-2xl space-y-4">
-          <div className="flex items-center gap-2 border-b border-gray-850 pb-2">
-            <AlertCircle className="w-4 h-4 text-brand-red" />
+        <div className="p-5 bg-[#0F0F15] border border-brand-red/30 rounded-2xl space-y-4 shadow-2xl">
+          <div className="flex items-center gap-2 border-b border-white/[0.05] pb-2">
+            <AlertCircle className="w-4 h-4 text-brand-red animate-pulse" />
             <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">Resultados de Búsqueda Global ({matchedClientes.length + matchedVehiculos.length + matchedReservas.length})</h3>
           </div>
-
+ 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
             {/* Clientes */}
             <div className="space-y-2">
-              <p className="font-mono text-gray-500 uppercase tracking-widest text-[9px] border-b border-gray-800 pb-1">👤 Clientes ({matchedClientes.length})</p>
+              <p className="font-mono text-gray-500 uppercase tracking-widest text-[9px] border-b border-white/[0.05] pb-1 font-bold">👤 Clientes ({matchedClientes.length})</p>
               {matchedClientes.slice(0, 3).map(c => (
-                <div key={c.id} onClick={() => onNavigate('Clientes')} className="p-2 bg-brand-card-light rounded-lg border border-gray-850 cursor-pointer hover:border-brand-red transition">
+                <div key={c.id} onClick={() => onNavigate('Clientes')} className="p-2.5 bg-[#181822]/50 rounded-xl border border-white/[0.04] cursor-pointer hover:border-brand-red transition duration-150">
                   <p className="font-bold text-white">{c.nombre}</p>
-                  <p className="text-[10px] text-gray-400 font-mono">{c.telefono}</p>
+                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">{c.telefono}</p>
                 </div>
               ))}
               {matchedClientes.length === 0 && <p className="text-[10px] text-gray-600 italic">No hay coincidencia</p>}
             </div>
-
+ 
             {/* Vehículos */}
             <div className="space-y-2">
-              <p className="font-mono text-gray-500 uppercase tracking-widest text-[9px] border-b border-gray-800 pb-1">🚗 Vehículos ({matchedVehiculos.length})</p>
+              <p className="font-mono text-gray-500 uppercase tracking-widest text-[9px] border-b border-white/[0.05] pb-1 font-bold">🚗 Vehículos ({matchedVehiculos.length})</p>
               {matchedVehiculos.slice(0, 3).map(v => (
-                <div key={v.matricula} onClick={() => onNavigate('Vehículos')} className="p-2 bg-brand-card-light rounded-lg border border-gray-850 cursor-pointer hover:border-brand-red transition">
-                  <span className="bg-white text-black px-1 py-0.5 rounded text-[8px] font-mono font-black">{v.matricula}</span>
-                  <p className="font-bold text-white mt-1 capitalize">{v.marca} {v.modelo}</p>
+                <div key={v.matricula} onClick={() => onNavigate('Vehículos')} className="p-2.5 bg-[#181822]/50 rounded-xl border border-white/[0.04] cursor-pointer hover:border-brand-red transition duration-150">
+                  <span className="bg-white text-black px-1.5 py-0.5 rounded font-mono font-black text-[9px] tracking-wider shadow-sm">{v.matricula}</span>
+                  <p className="font-bold text-white mt-1.5 capitalize">{v.marca} {v.modelo}</p>
                 </div>
               ))}
               {matchedVehiculos.length === 0 && <p className="text-[10px] text-gray-600 italic">No hay coincidencia</p>}
             </div>
-
+ 
             {/* Reservas */}
             <div className="space-y-2">
-              <p className="font-mono text-gray-500 uppercase tracking-widest text-[9px] border-b border-gray-800 pb-1">📅 Reservas ({matchedReservas.length})</p>
+              <p className="font-mono text-gray-500 uppercase tracking-widest text-[9px] border-b border-white/[0.05] pb-1 font-bold">📅 Reservas ({matchedReservas.length})</p>
               {matchedReservas.slice(0, 3).map(r => {
                 const owner = state.clientes.find(c => c.id === r.clienteId)?.nombre || 'Particular';
                 return (
-                  <div key={r.id} onClick={() => onNavigate('Agenda')} className="p-2 bg-brand-card-light rounded-lg border border-gray-850 cursor-pointer hover:border-brand-red transition">
-                    <div className="flex justify-between">
-                      <span className="font-bold text-white font-mono">{r.hora}</span>
-                      <span className="text-[9px] text-brand-red font-semibold">{r.estado}</span>
+                  <div key={r.id} onClick={() => onNavigate('Agenda')} className="p-2.5 bg-[#181822]/50 rounded-xl border border-white/[0.04] cursor-pointer hover:border-brand-red transition duration-150">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-white font-mono">{r.hora} hs</span>
+                      <span className="text-[8px] bg-brand-red/10 text-brand-red border border-brand-red/20 px-1.5 py-0.5 rounded uppercase font-mono font-extrabold">{r.estado}</span>
                     </div>
-                    <p className="text-[10px] text-gray-300 truncate mt-0.5">{owner} - {r.vehiculoMatricula}</p>
+                    <p className="text-[10px] text-gray-300 truncate mt-1">{owner} &bull; <span className="font-mono text-[9px]">{r.vehiculoMatricula}</span></p>
                   </div>
                 );
               })}
@@ -435,159 +435,163 @@ export default function Dashboard({
           </div>
         </div>
       )}
-
+ 
       {/* FASE 1: Grid of 8 Premium SaaS KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         
         {/* Card 1: Vehículos de hoy */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-gray-700 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Vehículos Hoy</p>
-          <div className="flex items-baseline gap-2 mt-1.5">
-            <span className="text-2xl font-display font-extrabold text-white">{vehiculosAgendadosHoyCount}</span>
-            <span className="text-[9px] text-gray-500 font-medium">unidades</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-brand-red/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-brand-red/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-brand-red/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Vehículos Hoy</p>
+          <div className="flex items-baseline gap-1 mt-2">
+            <span className="text-3xl font-display font-black text-white">{vehiculosAgendadosHoyCount}</span>
+            <span className="text-[10px] text-gray-500 font-medium">u.</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <CalendarDays className="w-3 h-3 text-blue-400" />
-            <span>Planificados hoy</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <CalendarDays className="w-3.5 h-3.5 text-brand-red/70 shrink-0" />
+            <span className="font-medium">Agendados hoy</span>
           </div>
         </div>
-
+ 
         {/* Card 2: Vehículos en proceso */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-amber-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">En Proceso</p>
-          <div className="flex items-baseline gap-2 mt-1.5">
-            <span className="text-2xl font-display font-extrabold text-amber-400">{vehiculosEnProcesoCount}</span>
-            <span className="text-[9px] text-amber-500/60 font-medium">activos</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-amber-500/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-amber-500/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">En Proceso</p>
+          <div className="flex items-baseline gap-1 mt-2">
+            <span className="text-3xl font-display font-black text-amber-400">{vehiculosEnProcesoCount}</span>
+            <span className="text-[10px] text-amber-600/70 font-medium">activas</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <Clock className="w-3 h-3 text-amber-400 animate-pulse" />
-            <span className="truncate">Lavando / secando</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <Clock className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
+            <span className="truncate font-medium">Lavando / Secando</span>
           </div>
         </div>
-
+ 
         {/* Card 3: Vehículos finalizados */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-green-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Finalizados</p>
-          <div className="flex items-baseline gap-2 mt-1.5">
-            <span className="text-2xl font-display font-extrabold text-brand-success">{vehiculosFinalizadosCount}</span>
-            <span className="text-[9px] text-brand-success/60 font-medium">listos</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-emerald-500/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Finalizados</p>
+          <div className="flex items-baseline gap-1 mt-2">
+            <span className="text-3xl font-display font-black text-brand-success">{vehiculosFinalizadosCount}</span>
+            <span className="text-[10px] text-brand-success/70 font-medium">listos</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <CheckCircle2 className="w-3 h-3 text-brand-success" />
-            <span>Listos para retirar</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <CheckCircle2 className="w-3.5 h-3.5 text-brand-success shrink-0" />
+            <span className="font-medium">Para retirar</span>
           </div>
         </div>
-
+ 
         {/* Card 4: Facturación del día */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-emerald-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Caja Hoy</p>
-          <div className="flex items-baseline gap-0.5 mt-1.5">
-            <span className="text-xl font-display font-extrabold text-emerald-400 font-mono">${facturacionHoy.toLocaleString('es-AR')}</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-emerald-500/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Caja Hoy</p>
+          <div className="flex items-baseline gap-0.5 mt-2">
+            <span className="text-xl font-display font-black text-emerald-400 font-mono">${facturacionHoy.toLocaleString('es-AR')}</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <TrendingUp className="w-3 h-3 text-emerald-400" />
-            <span>Ingresos brutos hoy</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="font-medium">Ingresos brutos</span>
           </div>
         </div>
-
+ 
         {/* Card 5: Facturación del mes */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-emerald-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Facturación Mes</p>
-          <div className="flex items-baseline gap-0.5 mt-1.5">
-            <span className="text-xl font-display font-extrabold text-emerald-400 font-mono">${facturacionMensual.toLocaleString('es-AR')}</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-emerald-500/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Caja Mes</p>
+          <div className="flex items-baseline gap-0.5 mt-2">
+            <span className="text-xl font-display font-black text-emerald-400 font-mono">${facturacionMensual.toLocaleString('es-AR')}</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <DollarSign className="w-3 h-3 text-emerald-500" />
-            <span>Acumulado del mes</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <DollarSign className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="font-medium">Acumulado mes</span>
           </div>
         </div>
-
+ 
         {/* Card 6: Próximo turno */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-red-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Próximo Turno</p>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-brand-red/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-brand-red/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-brand-red/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Próximo Turno</p>
           {proximoTurno ? (
-            <div className="mt-1">
-              <p className="text-[10px] font-bold text-white truncate">{proximoTurnoCliente?.nombre || 'S/D'}</p>
-              <p className="text-[9px] text-brand-red font-bold font-mono">{proximoTurno.hora} hs</p>
+            <div className="mt-2 min-h-[40px]">
+              <p className="text-xs font-bold text-white truncate max-w-full font-display">{proximoTurnoCliente?.nombre || 'S/D'}</p>
+              <p className="text-[10px] text-brand-red font-black font-mono mt-0.5">{proximoTurno.hora} hs</p>
             </div>
           ) : (
-            <p className="text-[10px] text-gray-500 italic mt-2.5">Sin pendientes</p>
+            <p className="text-xs text-gray-500 italic mt-3 min-h-[40px] flex items-center">Sin pendientes</p>
           )}
-          <div className="mt-1 flex items-center gap-1 text-[8px] text-gray-500">
-            <Clock className="w-2.5 h-2.5 text-brand-red" />
-            <span className="truncate">{proximoTurno?.servicioSol || 'Ninguno'}</span>
+          <div className="mt-1 flex items-center gap-1 text-[9px] text-gray-400">
+            <Clock className="w-3 h-3 text-brand-red shrink-0" />
+            <span className="truncate font-medium">{proximoTurno?.servicioSol || 'Ninguno'}</span>
           </div>
         </div>
-
+ 
         {/* Card 7: Clientes nuevos */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-purple-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Clientes Nuevos</p>
-          <div className="flex items-baseline gap-1.5 mt-1.5">
-            <span className="text-2xl font-display font-extrabold text-purple-400">{clientesNuevosDelMesCount}</span>
-            <span className="text-[9px] text-purple-500 font-medium">mes</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-purple-500/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Nuevos Clientes</p>
+          <div className="flex items-baseline gap-1 mt-2">
+            <span className="text-3xl font-display font-black text-purple-400">{clientesNuevosDelMesCount}</span>
+            <span className="text-[10px] text-purple-600/70 font-medium">mes</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <Users className="w-3 h-3 text-purple-400" />
-            <span>Registrados este mes</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+            <span className="font-medium">Registrados mes</span>
           </div>
         </div>
-
+ 
         {/* Card 8: Servicios realizados */}
-        <div className="p-3 bg-brand-card rounded-2xl border border-gray-800 hover:border-cyan-500/20 transition relative overflow-hidden group">
-          <p className="text-[9px] font-mono font-semibold text-gray-400 uppercase tracking-wider">Trabajos</p>
-          <div className="flex items-baseline gap-1 mt-1.5">
-            <span className="text-lg font-display font-extrabold text-cyan-400 font-mono">
-              {serviciosHoyCount}
-            </span>
-            <span className="text-[8px] text-gray-500 ml-1">hoy &bull;</span>
-            <span className="text-xs font-bold text-cyan-400 font-mono ml-1">{serviciosTotalCount}</span>
-            <span className="text-[8px] text-gray-500 ml-0.5">tot</span>
+        <div className="p-4 bg-brand-card rounded-2xl border border-white/[0.04] hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden shadow-lg group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/2 rounded-full blur-xl pointer-events-none transition-all group-hover:bg-cyan-500/10"></div>
+          <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest">Total Servicios</p>
+          <div className="flex items-baseline gap-1 mt-2">
+            <span className="text-3xl font-display font-black text-cyan-400 font-mono">{serviciosHoyCount}</span>
+            <span className="text-[9px] text-gray-500">/ {serviciosTotalCount}</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1 text-[9px] text-gray-500">
-            <Award className="w-3 h-3 text-cyan-400" />
-            <span>Lavados realizados</span>
+          <div className="mt-3.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+            <Award className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="font-medium">Lavados totales</span>
           </div>
         </div>
-
+ 
       </div>
 
       {/* QUICK ACCESS ACTIONS ROW */}
-      <div className="p-4 bg-brand-card rounded-2xl border border-gray-800/80">
-        <p className="text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-brand-red animate-pulse" /> Accesos Rápidos Operativos
+      <div className="p-5 bg-[#0F0F15] rounded-2xl border border-white/[0.04] shadow-lg">
+        <p className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-brand-red" /> Accesos Rápidos Operativos
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 text-xs">
           <button 
             onClick={() => onOpenQuickNewService()}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-red hover:bg-red-800 text-white font-extrabold rounded-xl transition duration-150 shadow shadow-brand-red/10 cursor-pointer"
+            className="flex items-center justify-center gap-2 py-2.5 px-4 premium-btn-primary font-bold rounded-xl cursor-pointer"
           >
             <Plus className="w-4 h-4 shrink-0" />
             Registrar Lavado
           </button>
           <button 
             onClick={() => onNavigate('Agenda')}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-card-light hover:bg-[#2B2B2B] text-white border border-gray-800 rounded-xl transition cursor-pointer"
+            className="flex items-center justify-center gap-2 py-2.5 px-4 premium-btn-secondary rounded-xl cursor-pointer font-bold"
           >
-            <CalendarDays className="w-4 h-4 text-blue-400 shrink-0" />
+            <CalendarDays className="w-4 h-4 text-brand-red shrink-0" />
             Crear Reserva
           </button>
           <button 
             onClick={() => onNavigate('Clientes')}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-card-light hover:bg-[#2B2B2B] text-white border border-gray-800 rounded-xl transition cursor-pointer"
+            className="flex items-center justify-center gap-2 py-2.5 px-4 premium-btn-secondary rounded-xl cursor-pointer font-bold"
           >
             <Users className="w-4 h-4 text-purple-400 shrink-0" />
             Registrar Cliente
           </button>
           <button 
             onClick={() => onNavigate('Caja')}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-card-light hover:bg-[#2B2B2B] text-white border border-gray-800 rounded-xl transition cursor-pointer"
+            className="flex items-center justify-center gap-2 py-2.5 px-4 premium-btn-secondary rounded-xl cursor-pointer font-bold"
           >
             <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
             Registrar Gasto
           </button>
           <button 
             onClick={() => onNavigate('Caja')}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-success/10 hover:bg-brand-success/20 text-brand-success border border-brand-success/20 rounded-xl transition font-bold cursor-pointer"
+            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-brand-success border border-emerald-500/20 rounded-xl transition duration-150 font-bold cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             Cierre de Caja
@@ -599,8 +603,8 @@ export default function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left: Recharts Interactive Analytics Panel */}
-        <div className="bg-brand-card rounded-3xl border border-gray-800 p-6 lg:col-span-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-4">
+        <div className="bg-brand-card rounded-3xl border border-white/[0.04] p-6 lg:col-span-8 space-y-6 shadow-xl shadow-black/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.05] pb-4">
             <div>
               <h2 className="text-lg font-display font-black text-white flex items-center gap-2">
                 <Activity className="w-5 h-5 text-brand-red" />
@@ -609,35 +613,35 @@ export default function Dashboard({
               <p className="text-xs text-gray-400">Estadísticas e ingresos financieros actualizados al instante</p>
             </div>
             
-            <div className="flex bg-brand-card-light p-1 rounded-xl border border-gray-800 shrink-0 self-start sm:self-auto overflow-x-auto max-w-full">
+            <div className="flex bg-[#070709] p-1 rounded-xl border border-white/[0.04] shrink-0 self-start sm:self-auto overflow-x-auto max-w-full">
               <button
                 onClick={() => setActiveChartTab('ventas')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
-                  activeChartTab === 'ventas' ? 'bg-brand-red text-white shadow-md' : 'text-gray-400 hover:text-white'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  activeChartTab === 'ventas' ? 'bg-[#181822] text-white border border-white/[0.05] shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
                 }`}
               >
                 Ventas Semanales
               </button>
               <button
                 onClick={() => setActiveChartTab('volumen')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
-                  activeChartTab === 'volumen' ? 'bg-brand-red text-white shadow-md' : 'text-gray-400 hover:text-white'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  activeChartTab === 'volumen' ? 'bg-[#181822] text-white border border-white/[0.05] shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
                 }`}
               >
                 Histórico Mensual
               </button>
               <button
                 onClick={() => setActiveChartTab('servicios')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
-                  activeChartTab === 'servicios' ? 'bg-brand-red text-white shadow-md' : 'text-gray-400 hover:text-white'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  activeChartTab === 'servicios' ? 'bg-[#181822] text-white border border-white/[0.05] shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
                 }`}
               >
                 Servicios Populares
               </button>
               <button
                 onClick={() => setActiveChartTab('clientes')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
-                  activeChartTab === 'clientes' ? 'bg-brand-red text-white shadow-md' : 'text-gray-400 hover:text-white'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  activeChartTab === 'clientes' ? 'bg-[#181822] text-white border border-white/[0.05] shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
                 }`}
               >
                 Clientes Frecuentes
@@ -652,18 +656,18 @@ export default function Dashboard({
                 <AreaChart data={dataSemanal} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorFacturacion" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                  <XAxis dataKey="label" stroke="#888" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#888" fontSize={11} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="label" stroke="#6B7280" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#111', borderColor: '#333', borderRadius: '12px', color: '#fff' }} 
+                    contentStyle={{ backgroundColor: '#0F0F15', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '12px', color: '#fff', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }} 
                     formatter={(val: any) => [`$${val.toLocaleString('es-AR')}`, 'Facturación']}
                   />
-                  <Area type="monotone" dataKey="Facturación" stroke="#EF4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorFacturacion)" />
+                  <Area type="monotone" dataKey="Facturación" stroke="#F43F5E" strokeWidth={2.5} fillOpacity={1} fill="url(#colorFacturacion)" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -672,16 +676,16 @@ export default function Dashboard({
             {activeChartTab === 'volumen' && (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dataMensual} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                  <XAxis dataKey="label" stroke="#888" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#888" fontSize={11} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="label" stroke="#6B7280" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#111', borderColor: '#333', borderRadius: '12px', color: '#fff' }}
+                    contentStyle={{ backgroundColor: '#0F0F15', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '12px', color: '#fff', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
                     formatter={(val: any) => [`$${val.toLocaleString('es-AR')}`]}
                   />
-                  <Legend verticalAlign="top" height={36} iconSize={10} wrapperStyle={{ fontSize: '11px', color: '#ccc' }} />
+                  <Legend verticalAlign="top" height={36} iconSize={10} wrapperStyle={{ fontSize: '11px', color: '#9CA3AF' }} />
                   <Bar dataKey="Ingresos" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Gastos" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Gastos" fill="#F43F5E" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -710,17 +714,17 @@ export default function Dashboard({
                   </ResponsiveContainer>
                 </div>
                 <div className="md:col-span-6 space-y-2 max-h-full overflow-y-auto pr-2">
-                  <h4 className="text-xs font-mono text-gray-400 uppercase tracking-wider">Top Servicios Más Vendidos</h4>
+                  <h4 className="text-xs font-mono text-gray-500 uppercase tracking-widest font-bold">Top Servicios Más Vendidos</h4>
                   {dataServicios.length === 0 ? (
                     <p className="text-xs text-gray-500 italic">No hay datos de servicios aún</p>
                   ) : (
                     dataServicios.map((item, index) => (
-                      <div key={item.name} className="flex items-center justify-between text-xs p-2.5 bg-brand-card-light rounded-xl border border-gray-850">
+                      <div key={item.name} className="flex items-center justify-between text-xs p-2.5 bg-[#181822]/40 rounded-xl border border-white/[0.04]">
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
-                          <span className="font-semibold text-white truncate max-w-[150px]">{item.name}</span>
+                          <span className="font-semibold text-white truncate max-w-[150px] font-display">{item.name}</span>
                         </div>
-                        <span className="font-mono font-bold text-gray-300 bg-gray-800 px-2 py-0.5 rounded text-[10px]">{item.value} u.</span>
+                        <span className="font-mono font-bold text-gray-300 bg-white/[0.04] px-2 py-0.5 rounded text-[10px] border border-white/[0.04]">{item.value} u.</span>
                       </div>
                     ))
                   )}
@@ -730,27 +734,27 @@ export default function Dashboard({
 
             {/* Chart 4: Clientes Frecuentes Leaderboard */}
             {activeChartTab === 'clientes' && (
-              <div className="space-y-3 h-full overflow-y-auto pr-1">
-                <h4 className="text-xs font-mono text-gray-400 uppercase tracking-wider mb-2">Clientes Recurrentes de Mayor Impacto</h4>
+              <div className="space-y-2.5 h-full overflow-y-auto pr-1">
+                <h4 className="text-xs font-mono text-gray-500 uppercase tracking-widest mb-1.5 font-bold">Clientes Recurrentes de Mayor Impacto</h4>
                 {topClientes.length === 0 ? (
                   <p className="text-xs text-gray-500 italic text-center py-12">No hay servicios registrados en la base de datos</p>
                 ) : (
                   topClientes.map((item, index) => (
-                    <div key={item.name} className="flex items-center justify-between text-xs p-3 bg-brand-card-light rounded-xl border border-gray-850">
+                    <div key={item.name} className="flex items-center justify-between text-xs p-3 bg-[#181822]/40 rounded-xl border border-white/[0.04]">
                       <div className="flex items-center gap-3">
                         <div className="w-6 h-6 rounded-full bg-brand-red/10 border border-brand-red/20 text-brand-red font-bold flex items-center justify-center text-[10px]">
                           #{index + 1}
                         </div>
-                        <span className="font-bold text-white text-sm">{item.name}</span>
+                        <span className="font-bold text-white text-sm font-display">{item.name}</span>
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-[10px] text-gray-500 font-mono">VISITAS</p>
+                          <p className="text-[9px] text-gray-500 font-mono uppercase font-bold">Visitas</p>
                           <p className="font-mono font-bold text-gray-200">{item.count} veces</p>
                         </div>
                         <div className="text-right min-w-[80px]">
-                          <p className="text-[10px] text-gray-500 font-mono">TOTAL GASTADO</p>
-                          <p className="font-mono font-extrabold text-brand-success">${item.totalSpent.toLocaleString('es-AR')}</p>
+                          <p className="text-[9px] text-gray-500 font-mono uppercase font-bold">Total Gastado</p>
+                          <p className="font-mono font-extrabold text-[#10B981]">${item.totalSpent.toLocaleString('es-AR')}</p>
                         </div>
                       </div>
                     </div>
@@ -761,10 +765,10 @@ export default function Dashboard({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div className="p-4 bg-brand-card-light rounded-2xl border border-gray-850 flex items-center justify-between">
+            <div className="p-4 bg-[#181822]/40 rounded-2xl border border-white/[0.04] flex items-center justify-between">
               <div>
-                <p className="text-xs font-mono text-gray-500">VOLUMEN SEMANAL</p>
-                <p className="text-xl font-display font-extrabold text-white mt-1">
+                <p className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider">Volumen Semanal</p>
+                <p className="text-xl font-display font-black text-white mt-1">
                   {dataSemanal.reduce((sum, d) => sum + d["Vehículos"], 0)} vehículos
                 </p>
               </div>
@@ -773,10 +777,10 @@ export default function Dashboard({
               </div>
             </div>
 
-            <div className="p-4 bg-brand-card-light rounded-2xl border border-gray-850 flex items-center justify-between">
+            <div className="p-4 bg-[#181822]/40 rounded-2xl border border-white/[0.04] flex items-center justify-between">
               <div>
-                <p className="text-xs font-mono text-gray-500">UTILIDAD ESTIMADA MES</p>
-                <p className="text-xl font-display font-extrabold text-emerald-400 mt-1">
+                <p className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider">Utilidad Estimada Mes</p>
+                <p className="text-xl font-display font-black text-emerald-400 mt-1">
                   ${(facturacionMensual - state.gastos.filter(g => g.fecha.startsWith(currentMonthStr)).reduce((sum, g) => sum + g.monto, 0)).toLocaleString('es-AR')}
                 </p>
               </div>
@@ -791,8 +795,8 @@ export default function Dashboard({
         <div className="lg:col-span-4 space-y-6 flex flex-col">
           
           {/* Calendar Agenda of Today */}
-          <div className="bg-brand-card rounded-3xl border border-gray-800 p-5 space-y-4 flex-1">
-            <div className="flex items-center justify-between border-b border-gray-850 pb-4">
+          <div className="bg-brand-card rounded-3xl border border-white/[0.04] p-5 space-y-4 flex-1 shadow-xl shadow-black/30">
+            <div className="flex items-center justify-between border-b border-white/[0.05] pb-4">
               <div>
                 <h2 className="text-base font-display font-black text-white flex items-center gap-1.5">
                   <CalendarDays className="w-4.5 h-4.5 text-brand-red" />
@@ -802,7 +806,7 @@ export default function Dashboard({
               </div>
               <button 
                 onClick={() => onNavigate('Agenda')}
-                className="text-xs text-brand-red font-bold hover:underline shrink-0"
+                className="text-xs text-brand-red font-bold hover:underline shrink-0 cursor-pointer"
               >
                 Ver Agenda
               </button>
@@ -810,7 +814,7 @@ export default function Dashboard({
 
             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
               {reservasHoy.length === 0 ? (
-                <div className="py-12 text-center bg-brand-card-light rounded-2xl border border-dashed border-gray-850 text-gray-400">
+                <div className="py-12 text-center bg-[#181822]/30 rounded-2xl border border-dashed border-white/[0.06] text-gray-400">
                   <CalendarDays className="w-8 h-8 text-gray-600 mx-auto mb-2 animate-bounce" />
                   <p className="text-xs font-bold text-gray-400">No hay turnos hoy</p>
                   <button 
@@ -832,7 +836,7 @@ export default function Dashboard({
                     return (
                       <div 
                         key={res.id} 
-                        className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex flex-col gap-2 relative hover:border-gray-800 transition"
+                        className="p-3 bg-[#181822]/40 rounded-xl border border-white/[0.04] flex flex-col gap-2 relative hover:border-white/[0.1] transition"
                       >
                         <div className="flex justify-between items-start gap-2">
                           <div className="space-y-1">
@@ -842,7 +846,7 @@ export default function Dashboard({
                                 {res.estado}
                               </span>
                             </div>
-                            <p className="font-bold text-gray-100 text-xs truncate max-w-[150px]">{client?.nombre || 'Particular'}</p>
+                            <p className="font-bold text-gray-100 text-xs truncate max-w-[150px] font-display">{client?.nombre || 'Particular'}</p>
                             <p className="text-[10px] text-gray-400">
                               {car?.marca || ''} {car?.modelo || ''} &mdash; <span className="bg-white/10 text-gray-200 px-1 py-0.5 rounded font-mono text-[9px] font-bold">{res.vehiculoMatricula}</span>
                             </p>
@@ -853,7 +857,7 @@ export default function Dashboard({
                             <button
                               onClick={() => handleConfirmWhatsApp(res)}
                               title="Enviar recordatorio WhatsApp"
-                              className="p-1.5 bg-[#28A745]/10 hover:bg-[#28A745]/20 text-[#28A745] border border-[#28A745]/20 rounded-lg transition"
+                              className="p-1.5 bg-[#28A745]/10 hover:bg-[#28A745]/20 text-[#28A745] border border-[#28A745]/20 rounded-lg transition cursor-pointer"
                             >
                               <MessageSquare className="w-3.5 h-3.5" />
                             </button>
@@ -861,7 +865,7 @@ export default function Dashboard({
                               <button
                                 onClick={() => handleReadyWhatsApp(res)}
                                 title="Notificar que está Listo por WhatsApp"
-                                className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg transition"
+                                className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg transition cursor-pointer"
                               >
                                 <Smartphone className="w-3.5 h-3.5" />
                               </button>
@@ -870,10 +874,10 @@ export default function Dashboard({
                         </div>
 
                         {nextS && nextLabel && (
-                          <div className="mt-0.5 pt-2 border-t border-gray-850 flex justify-end">
+                          <div className="mt-0.5 pt-2 border-t border-white/[0.05] flex justify-end">
                             <button
                               onClick={() => onUpdateReservaState(res.id, nextS)}
-                              className="text-[9px] bg-brand-red/10 hover:bg-brand-red text-brand-red hover:text-white px-2 py-1 rounded-md font-bold flex items-center gap-1 transition cursor-pointer"
+                              className="text-[9px] bg-brand-red/10 hover:bg-brand-red text-brand-red hover:text-white px-2.5 py-1 rounded-md font-bold flex items-center gap-1 transition cursor-pointer"
                             >
                               <span>{nextLabel}</span>
                               <ChevronRight className="w-2.5 h-2.5" />
@@ -882,7 +886,7 @@ export default function Dashboard({
                         )}
 
                         {res.estado === 'Finalizado' && (
-                          <div className="mt-0.5 pt-2 border-t border-gray-850 flex justify-end">
+                          <div className="mt-0.5 pt-2 border-t border-white/[0.05] flex justify-end">
                             <button
                               onClick={() => onOpenQuickNewService(res)}
                               className="text-[9px] bg-emerald-500 hover:bg-emerald-600 text-black px-2.5 py-1 rounded-md font-extrabold flex items-center gap-1 transition shadow cursor-pointer"
@@ -900,21 +904,21 @@ export default function Dashboard({
           </div>
 
           {/* Recent Activity Stream Panel */}
-          <div className="bg-brand-card rounded-3xl border border-gray-800 p-5 space-y-4">
-            <h2 className="text-sm font-display font-bold text-white flex items-center gap-1.5 border-b border-gray-850 pb-3">
+          <div className="bg-brand-card rounded-3xl border border-white/[0.04] p-5 space-y-4 shadow-xl shadow-black/30">
+            <h2 className="text-sm font-display font-bold text-white flex items-center gap-1.5 border-b border-white/[0.05] pb-3">
               <Activity className="w-4 h-4 text-brand-red" />
               Actividad Reciente
             </h2>
 
             <div className="space-y-3">
               {recentActivity.map(act => (
-                <div key={act.id} className="flex gap-2.5 items-start text-xs border-b border-gray-850/40 pb-2.5 last:border-0 last:pb-0">
+                <div key={act.id} className="flex gap-2.5 items-start text-xs border-b border-white/[0.03] pb-2.5 last:border-0 last:pb-0">
                   <div className={`p-1.5 rounded-lg shrink-0 ${act.type === 'servicio' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-brand-red/10 text-brand-red'}`}>
                     {act.type === 'servicio' ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                   </div>
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="flex items-center justify-between">
-                      <p className="font-bold text-white truncate max-w-[120px]">{act.title}</p>
+                      <p className="font-bold text-white truncate max-w-[120px] font-display">{act.title}</p>
                       <span className="text-[9px] font-mono text-gray-500">{act.timestamp.split(' ')[0]}</span>
                     </div>
                     <p className="text-[10px] text-gray-400 truncate">{act.description}</p>
