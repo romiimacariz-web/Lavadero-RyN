@@ -564,42 +564,90 @@ export default function Vehicles({
               )}
             </div>
 
-            {/* Service history detailed logs */}
-            <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-3">
+            {/* Service history detailed logs / Timeline */}
+            <div className="p-5 bg-brand-card rounded-2xl border border-gray-800 space-y-4">
               <h3 className="text-sm font-mono uppercase text-gray-400 tracking-wider flex items-center gap-2 border-b border-gray-850 pb-2">
                 <Calendar className="w-4 h-4 text-brand-red" />
-                Historial de Servicios en este Vehículo ({getVehiculoServicios(selectedVehiculo.matricula).length})
+                Línea de Tiempo de Servicios ({getVehiculoServicios(selectedVehiculo.matricula).length})
               </h3>
 
-              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                {getVehiculoServicios(selectedVehiculo.matricula).map(s => (
-                  <div key={s.id} className="p-3 bg-brand-card-light rounded-xl border border-gray-850 flex justify-between items-center text-xs hover:border-gray-800 transition">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm capitalize">{s.tipo}</span>
-                        <span className="text-[10px] bg-white/10 text-gray-300 font-bold px-1.5 py-0.5 rounded font-mono">
-                          ID: {s.id}
-                        </span>
-                      </div>
-                      <p className="text-gray-400 font-mono text-[10px] flex items-center gap-1 mt-1">
-                        <Clock className="w-3.5 h-3.5 text-gray-500" />
-                        <span>Realizado: {s.fecha} hs &bull; {s.formaPago}</span>
-                      </p>
-                      {s.observaciones && <p className="text-[11px] text-gray-500 mt-1 italic font-sans">&ldquo;{s.observaciones}&rdquo;</p>}
-                    </div>
+              <div className="relative pl-6 border-l border-gray-800/80 space-y-6 max-h-[350px] overflow-y-auto pr-1 py-1">
+                {getVehiculoServicios(selectedVehiculo.matricula).map((s, sIdx) => (
+                  <div key={s.id} className="relative group">
+                    {/* Circle Node indicator on the left line */}
+                    <div className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 rounded-full bg-brand-red border border-black group-hover:scale-125 transition-transform"></div>
 
-                    <div className="text-right">
-                      <span className="font-mono text-sm text-brand-success font-extrabold">
-                        ${s.precio.toLocaleString('es-AR')}
-                      </span>
+                    {/* Timeline card */}
+                    <div className="p-3.5 bg-brand-card-light rounded-xl border border-gray-850 flex flex-col gap-3 hover:border-gray-800 transition">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-white text-sm capitalize">{s.tipo}</span>
+                            <span className="text-[9px] bg-white/10 text-gray-300 font-bold px-1.5 py-0.5 rounded font-mono">
+                              ID: {s.id}
+                            </span>
+                            <span className="text-[9px] bg-brand-success/15 text-brand-success font-black px-2 py-0.5 rounded font-mono">
+                              Pago: {s.formaPago}
+                            </span>
+                          </div>
+                          
+                          <p className="text-gray-400 font-mono text-[10px] flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-gray-500" />
+                            <span>Realizado: {s.fecha} hs</span>
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="font-mono text-sm text-brand-success font-black block">
+                            ${s.precio.toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {s.observaciones && (
+                        <div className="p-2 bg-brand-card border border-gray-850 rounded-lg text-[11px] text-gray-400 font-sans italic">
+                          &ldquo;{s.observaciones}&rdquo;
+                        </div>
+                      )}
+
+                      {/* Timeline photos list if present */}
+                      {((s.fotosAntes && s.fotosAntes.length > 0) || (s.fotosDespues && s.fotosDespues.length > 0)) && (
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                          {s.fotosAntes && s.fotosAntes[0] && (
+                            <div className="space-y-1">
+                              <p className="text-[8px] font-mono text-gray-500 uppercase">Antes</p>
+                              <img 
+                                src={s.fotosAntes[0]} 
+                                alt="Antes" 
+                                className="w-full h-16 object-cover rounded-lg border border-gray-850"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                          )}
+                          {s.fotosDespues && s.fotosDespues[0] && (
+                            <div className="space-y-1">
+                              <p className="text-[8px] font-mono text-gray-500 uppercase">Después</p>
+                              <img 
+                                src={s.fotosDespues[0]} 
+                                alt="Después" 
+                                className="w-full h-16 object-cover rounded-lg border border-gray-850"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
 
                 {getVehiculoServicios(selectedVehiculo.matricula).length === 0 && (
-                  <p className="p-4 rounded-xl text-center text-xs text-gray-500 italic border border-dashed border-gray-850">
-                    Ningún lavado registrado en nuestro sistema para este vehículo todavía.
-                  </p>
+                  <div className="relative">
+                    <div className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 rounded-full bg-gray-700 border border-black"></div>
+                    <p className="p-4 rounded-xl text-center text-xs text-gray-500 italic border border-dashed border-gray-850 bg-brand-card-light">
+                      Ningún lavado registrado en nuestro sistema para este vehículo todavía.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
