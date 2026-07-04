@@ -79,6 +79,8 @@ export default function SelfService({
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [hora, setHora] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [quiereRetiro, setQuiereRetiro] = useState(false);
+  const [direccionRetiro, setDireccionRetiro] = useState('');
 
   // Auto-default dynamic package choice when catalog loads or matches
   useEffect(() => {
@@ -136,10 +138,22 @@ export default function SelfService({
       setErrorText('Por favor complete todos los datos necesarios.');
       return;
     }
+    if (quiereRetiro && !direccionRetiro.trim()) {
+      setErrorText('Por favor ingrese la dirección para el retiro a domicilio.');
+      return;
+    }
     setErrorText(null);
     setIsSubmitting(true);
 
     try {
+      let finalObservaciones = observaciones.trim();
+      if (quiereRetiro) {
+        const retiroInfo = `🏠 RETIRO EN DOMICILIO SOLICITADO\n📍 Dirección: ${direccionRetiro.trim()}`;
+        finalObservaciones = finalObservaciones 
+          ? `${retiroInfo}\n📝 Obs: ${finalObservaciones}`
+          : retiroInfo;
+      }
+
       const created = await onAddBooking(
         nombre.trim(),
         telefono.trim(),
@@ -151,7 +165,7 @@ export default function SelfService({
         fecha,
         hora,
         servicioSol,
-        observaciones.trim() || undefined
+        finalObservaciones || undefined
       );
 
       setSuccessBooking(created);
@@ -176,6 +190,8 @@ export default function SelfService({
     setFecha(new Date().toISOString().split('T')[0]);
     setHora('');
     setObservaciones('');
+    setQuiereRetiro(false);
+    setDireccionRetiro('');
     setSuccessBooking(null);
     setStep(1);
   };
@@ -185,14 +201,22 @@ export default function SelfService({
     const client = state.clientes.find(c => c.id === successBooking.clienteId);
     const textPhone = client ? client.whatsapp : telefono;
     
+    let retiroMsg = '';
+    if (quiereRetiro) {
+      retiroMsg = `🏠 *Retiro a Domicilio:* SÍ\n📍 *Dirección:* ${direccionRetiro.trim()}\n`;
+    }
+
     const textMsg = `*LAVADERO RyN - MI RESERVA* 🚙🧼\n\n` +
       `¡Hola *${nombre}*! Registramos tu turno solicitado de forma online:\n\n` +
       `📅 *Fecha:* ${successBooking.fecha}\n` +
       `⏰ *Hora:* ${successBooking.hora} hs\n` +
       `🚗 *Vehículo:* ${marca} ${modelo} (${matricula.toUpperCase()})\n` +
       `✨ *Servicio:* ${successBooking.servicioSol}\n` +
+      retiroMsg +
       `📌 *Estado:* ${successBooking.estado}\n\n` +
-      `Te esperamos en la sucursal. ¡Muchas gracias por elegirnos!`;
+      (quiereRetiro 
+        ? `Iremos a buscar tu vehículo en el domicilio y horario acordados. ¡Muchas gracias por elegirnos!` 
+        : `Te esperamos en la sucursal. ¡Muchas gracias por elegirnos!`);
 
     onTriggerWhatsApp(textPhone, textMsg);
   };
@@ -201,6 +225,11 @@ export default function SelfService({
     if (!successBooking) return;
     const textPhone = state.businessWhatsapp || '5491123456789';
     
+    let retiroMsg = '';
+    if (quiereRetiro) {
+      retiroMsg = `🏠 *Retiro a Domicilio:* SÍ\n📍 *Dirección:* ${direccionRetiro.trim()}\n`;
+    }
+
     const textMsg = `*NUEVO TURNO AUTOSERVICIO - LAVADERO RyN* 🚙🧼\n\n` +
       `Hola Lavadero RyN, he reservado un turno online:\n\n` +
       `👤 *Cliente:* ${nombre}\n` +
@@ -209,6 +238,7 @@ export default function SelfService({
       `⏰ *Hora:* ${successBooking.hora} hs\n` +
       `🚗 *Vehículo:* ${marca} ${modelo} (${matricula.toUpperCase()})\n` +
       `✨ *Servicio:* ${successBooking.servicioSol}\n` +
+      retiroMsg +
       `📝 *Obs:* ${observaciones || 'S/D'}`;
 
     onTriggerWhatsApp(textPhone, textMsg);
@@ -482,6 +512,42 @@ export default function SelfService({
                 </div>
               </div>
 
+              {/* RETIRO A DOMICILIO OPTION */}
+              <div className="p-4 bg-[#181822]/60 border border-white/[0.04] rounded-xl space-y-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-white block">🏠 ¿Quieres que retiremos el vehículo en tu domicilio?</span>
+                    <span className="text-[10px] text-gray-400 block">Ofrecemos servicio de traslado opcional puerta a puerta</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={quiereRetiro} 
+                      onChange={(e) => {
+                        setQuiereRetiro(e.target.checked);
+                        if (!e.target.checked) setDireccionRetiro('');
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-gray-855 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-500 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-red peer-checked:after:bg-white peer-checked:after:border-transparent"></div>
+                  </label>
+                </div>
+
+                {quiereRetiro && (
+                  <div className="space-y-1.5 pt-1 animate-fadeIn">
+                    <label className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest block">Dirección Completa * (Calle, altura, depto, timbre, etc.)</label>
+                    <input
+                      type="text"
+                      required={quiereRetiro}
+                      placeholder="Ej: Av. Pellegrini 1500, Piso 3 Depto B"
+                      className="w-full bg-[#181822] border border-white/[0.06] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-red/50 focus:border-brand-red/50 font-bold"
+                      value={direccionRetiro}
+                      onChange={(e) => setDireccionRetiro(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-mono text-gray-400 uppercase tracking-widest block">¿Alguna indicación particular? (Opcional)</label>
                 <textarea
@@ -544,6 +610,18 @@ export default function SelfService({
                 <span className="text-gray-400 uppercase font-mono tracking-widest text-[10px]">Servicio Solicitado:</span>
                 <span className="text-brand-warning font-extrabold capitalize">{servicioSol}</span>
               </div>
+              <div className="py-2.5 flex justify-between">
+                <span className="text-gray-400 uppercase font-mono tracking-widest text-[10px]">Retiro a Domicilio:</span>
+                <span className={`font-bold ${quiereRetiro ? 'text-brand-red' : 'text-gray-400'}`}>
+                  {quiereRetiro ? 'SÍ (a domicilio)' : 'NO (vengo yo)'}
+                </span>
+              </div>
+              {quiereRetiro && (
+                <div className="py-2.5 flex justify-between">
+                  <span className="text-gray-400 uppercase font-mono tracking-widest text-[10px]">Dirección de Retiro:</span>
+                  <span className="font-semibold text-white text-right max-w-[200px] break-words">{direccionRetiro}</span>
+                </div>
+              )}
               <div className="py-2.5 flex justify-between bg-black/30 px-2 rounded-lg my-1.5 border border-dashed border-gray-800">
                 <span className="text-gray-300 font-bold flex items-center gap-1">
                   <Calendar className="w-4 h-4 text-brand-red shrink-0" />
@@ -639,13 +717,25 @@ export default function SelfService({
                 </p>
                 <p className="flex justify-between">
                   <span className="text-gray-400 font-mono uppercase tracking-wider text-[9px]">Matrícula:</span> 
-                  <span className="font-mono bg-white text-black px-1 rounded text-[10px] font-bold">{matricula.toUpperCase()}</span>
+                  <span className="font-mono bg-white text-black px-1.5 py-0.5 rounded font-black tracking-wide">{matricula.toUpperCase()}</span>
                 </p>
                 <p className="flex justify-between">
                   <span className="text-gray-400 font-mono uppercase tracking-wider text-[9px]">Concepto:</span> 
                   <span className="text-brand-warning font-semibold capitalize">{servicioSol}</span>
                 </p>
-                <p className="flex justify-between pt-2 border-t border-gray-850">
+                {quiereRetiro && (
+                  <>
+                    <p className="flex justify-between">
+                      <span className="text-gray-400 font-mono uppercase tracking-wider text-[9px]">Retiro Domicilio:</span> 
+                      <span className="text-brand-red font-bold text-[10px]">SOLICITADO</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-400 font-mono uppercase tracking-wider text-[9px]">Dirección Retiro:</span> 
+                      <span className="font-semibold text-white text-right max-w-[180px] break-words">{direccionRetiro}</span>
+                    </p>
+                  </>
+                )}
+                <p className="flex justify-between pt-2 border-t border-gray-855">
                   <span className="text-gray-400 font-mono uppercase tracking-wider text-[9px]">Día Agendado:</span> 
                   <span className="font-bold text-white">{successBooking.fecha}</span>
                 </p>
@@ -656,7 +746,10 @@ export default function SelfService({
               </div>
 
               <div className="text-center pt-2.5 border-t border-gray-850 text-[9px] text-[#FFC107] font-mono leading-relaxed">
-                🚨 Recuerda llegar 5 minutos antes con llave en mano 🚨
+                {quiereRetiro 
+                  ? '🏠 Ten listo tu vehículo en el domicilio indicado a la hora acordada 🏠'
+                  : '🚨 Recuerda llegar 5 minutos antes con llave en mano 🚨'
+                }
               </div>
             </div>
 
