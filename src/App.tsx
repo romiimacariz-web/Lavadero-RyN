@@ -66,6 +66,46 @@ import {
 } from 'lucide-react';
 import { getWhatsAppHref, getConfirmationMessage, getVehicleReadyMessage, getInactiveGreetingMessage } from './utils/whatsapp';
 
+// Navigation Helpers to Centralize Routing and fix 404/Hash mismatch issues
+function getCurrentRoute(): string {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#/')) {
+    return hash.substring(1);
+  }
+  return window.location.pathname;
+}
+
+function getTabFromRoute(route: string): string {
+  const cleanRoute = route.toLowerCase().replace(/\/$/, '');
+  if (cleanRoute === '' || cleanRoute === '/dashboard' || cleanRoute === '/') {
+    return 'Inicio';
+  }
+  if (cleanRoute === '/clientes') return 'Clientes';
+  if (cleanRoute === '/vehiculos') return 'Vehículos';
+  if (cleanRoute === '/agenda') return 'Agenda';
+  if (cleanRoute === '/servicios') return 'Servicios';
+  if (cleanRoute === '/caja') return 'Caja';
+  if (cleanRoute === '/reportes') return 'Reportes';
+  if (cleanRoute === '/configuracion') return 'Configuración';
+  if (cleanRoute === '/autoservicio') return 'Autoservicio';
+  return 'Inicio';
+}
+
+function getRouteFromTab(tab: string): string {
+  switch (tab) {
+    case 'Inicio': return '/dashboard';
+    case 'Clientes': return '/clientes';
+    case 'Vehículos': return '/vehiculos';
+    case 'Agenda': return '/agenda';
+    case 'Servicios': return '/servicios';
+    case 'Caja': return '/caja';
+    case 'Reportes': return '/reportes';
+    case 'Configuración': return '/configuracion';
+    case 'Autoservicio': return '/autoservicio';
+    default: return '/dashboard';
+  }
+}
+
 export default function App() {
   const { user, usuario, loading: authLoading, logout } = useAuth();
   
@@ -105,13 +145,29 @@ export default function App() {
     ...getInitialState(),
     currentRole: 'Empleado'
   });
-  const [activeTab, setActiveTab] = useState<string>('Inicio');
-  const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
+  const [currentPath, setCurrentPath] = useState<string>(getCurrentRoute());
+  const [activeTab, setActiveTab] = useState<string>(getTabFromRoute(getCurrentRoute()));
+
+  // Centralized navigation functions
+  const navigateTo = (path: string) => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#/')) {
+      window.location.hash = '#' + path;
+    } else {
+      window.history.pushState(null, '', path);
+      setCurrentPath(path);
+    }
+  };
+
+  const handleTabChange = (tab: string) => {
+    const route = getRouteFromTab(tab);
+    navigateTo(route);
+  };
 
   // Router listener for public URL routing
   useEffect(() => {
     const handleLocationChange = () => {
-      setCurrentPath(window.location.pathname);
+      setCurrentPath(getCurrentRoute());
     };
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('hashchange', handleLocationChange);
@@ -120,6 +176,12 @@ export default function App() {
       window.removeEventListener('hashchange', handleLocationChange);
     };
   }, []);
+
+  // Sync currentPath to activeTab
+  useEffect(() => {
+    const tab = getTabFromRoute(currentPath);
+    setActiveTab(tab);
+  }, [currentPath]);
   
   // Quick service trigger from dashboard
   const [quickServiceReserva, setQuickServiceReserva] = useState<Reserva | null>(null);
@@ -225,7 +287,7 @@ export default function App() {
 
     // If we transition to Empleado and are on reports, cash or config, reset to Inicio
     if (role === 'Empleado' && (activeTab === 'Caja' || activeTab === 'Reportes' || activeTab === 'Configuración')) {
-      setActiveTab('Inicio');
+      handleTabChange('Inicio');
     }
     updateStateAndPersist({ currentRole: role });
   };
@@ -724,7 +786,7 @@ export default function App() {
           onAddBooking={handleAddBookingSelfService}
           onTriggerWhatsApp={handleTriggerWhatsApp}
           onExit={() => {
-            setActiveTab('Inicio');
+            handleTabChange('Inicio');
             setDbState(prev => ({ ...prev, currentRole: usuario?.rol || 'Empleado' }));
           }}
           isPublicRoute={isPublicAutoservicio}
@@ -817,7 +879,7 @@ export default function App() {
             return (
               <button
                 key={tab.label}
-                onClick={() => setActiveTab(tab.label)}
+                onClick={() => handleTabChange(tab.label)}
                 className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-xl transition-all relative ${
                   isActive 
                     ? 'text-white bg-white/[0.04] border-l-2 border-brand-red pl-2.5 shadow-sm shadow-white/5' 
@@ -879,11 +941,11 @@ export default function App() {
           {activeTab === 'Inicio' && (
             <Dashboard 
               state={dbState} 
-              onNavigate={setActiveTab} 
+              onNavigate={handleTabChange} 
               onTriggerWhatsApp={handleTriggerWhatsApp} 
               onOpenQuickNewService={(res) => {
                 if (res) setQuickServiceReserva(res);
-                setActiveTab('Servicios');
+                handleTabChange('Servicios');
               }}
               onUpdateReservaState={handleUpdateReservaState}
             />
@@ -964,7 +1026,7 @@ export default function App() {
             return (
               <button
                 key={tab.label}
-                onClick={() => setActiveTab(tab.label)}
+                onClick={() => handleTabChange(tab.label)}
                 style={{ contentVisibility: 'auto' }}
                 className={`flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl transition-all ${
                   isActive 
