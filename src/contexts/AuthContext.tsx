@@ -28,6 +28,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   updateUserRoleInDb: (uid: string, nuevoRol: 'Administrador' | 'Empleado') => Promise<void>;
+  loginAsDemo?: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +40,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sync Auth State
   useEffect(() => {
+    const isDemoLoggedIn = localStorage.getItem('lavadero_demo_logged_in') === 'true';
+    if (isDemoLoggedIn) {
+      const mockFirebaseUser = {
+        uid: 'demo-admin-uid',
+        email: 'romii.macariz@gmail.com',
+        displayName: 'Romi Macariz (Demo)',
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        refreshToken: '',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => 'demo-token',
+        getIdTokenResult: async () => ({ token: 'demo-token', signInProvider: 'password', claims: {}, authTime: '', expirationTime: '', issuedAtTime: '' }),
+        reload: async () => {},
+        toJSON: () => ({}),
+      } as unknown as FirebaseUser;
+
+      const mockUsuario: Usuario = {
+        uid: 'demo-admin-uid',
+        email: 'romii.macariz@gmail.com',
+        nombre: 'Romi Macariz (Demo)',
+        rol: 'Administrador'
+      };
+
+      setUser(mockFirebaseUser);
+      setUsuario(mockUsuario);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
@@ -149,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setLoading(true);
     try {
+      localStorage.removeItem('lavadero_demo_logged_in');
       await signOut(auth);
       setUser(null);
       setUsuario(null);
@@ -168,8 +202,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginAsDemo = async () => {
+    setLoading(true);
+    try {
+      const mockFirebaseUser = {
+        uid: 'demo-admin-uid',
+        email: 'romii.macariz@gmail.com',
+        displayName: 'Romi Macariz (Demo)',
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        refreshToken: '',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => 'demo-token',
+        getIdTokenResult: async () => ({ token: 'demo-token', signInProvider: 'password', claims: {}, authTime: '', expirationTime: '', issuedAtTime: '' }),
+        reload: async () => {},
+        toJSON: () => ({}),
+      } as unknown as FirebaseUser;
+
+      const mockUsuario: Usuario = {
+        uid: 'demo-admin-uid',
+        email: 'romii.macariz@gmail.com',
+        nombre: 'Romi Macariz (Demo)',
+        rol: 'Administrador'
+      };
+
+      localStorage.setItem('lavadero_demo_logged_in', 'true');
+      setUser(mockFirebaseUser);
+      setUsuario(mockUsuario);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateUserRoleInDb = async (uid: string, nuevoRol: 'Administrador' | 'Empleado') => {
     try {
+      // If demo mode, don't perform remote db updates for security or permission blocks
+      if (localStorage.getItem('lavadero_demo_logged_in') === 'true') {
+        if (usuario && usuario.uid === uid) {
+          setUsuario(prev => prev ? { ...prev, rol: nuevoRol } : null);
+        }
+        return;
+      }
       try {
         await setDoc(doc(db, 'usuarios', uid), { rol: nuevoRol }, { merge: true });
       } catch (err) {
@@ -194,7 +270,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signup,
       logout,
       loginWithGoogle,
-      updateUserRoleInDb
+      updateUserRoleInDb,
+      loginAsDemo
     }}>
       {children}
     </AuthContext.Provider>

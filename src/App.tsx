@@ -145,6 +145,18 @@ export default function App() {
     ...getInitialState(),
     currentRole: 'Empleado'
   });
+
+  // Sincronizar el rol del usuario autenticado con el rol activo de la aplicación
+  useEffect(() => {
+    if (usuario?.rol) {
+      setDbState(prev => {
+        if (prev.currentRole !== usuario.rol) {
+          return { ...prev, currentRole: usuario.rol as UserRole };
+        }
+        return prev;
+      });
+    }
+  }, [usuario]);
   const [currentPath, setCurrentPath] = useState<string>(getCurrentRoute());
   const [activeTab, setActiveTab] = useState<string>(getTabFromRoute(getCurrentRoute()));
 

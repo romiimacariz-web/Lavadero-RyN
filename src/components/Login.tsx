@@ -13,8 +13,9 @@ interface LoginProps {
 }
 
 export default function Login({ onSuccess }: LoginProps) {
-  const { login, signup, loginWithGoogle } = useAuth();
+  const { login, signup, loginWithGoogle, loginAsDemo } = useAuth();
   const [isLogin, setIsLogin] = useState<boolean>(true);
+  const [showDemoOption, setShowDemoOption] = useState<boolean>(false);
   
   // Form fields
   const [email, setEmail] = useState<string>('');
@@ -61,6 +62,9 @@ export default function Login({ onSuccess }: LoginProps) {
         localizedError = 'La contraseña es muy débil (mínimo 6 caracteres).';
       } else if (err.code === 'auth/invalid-email') {
         localizedError = 'Formato de correo electrónico inválido.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        localizedError = 'El método de inicio de sesión por Correo/Contraseña está deshabilitado en tu Firebase Console. Por favor, actívalo en la sección Authentication -> Sign-in method, o haz clic en "Entrar en Modo Demo" abajo.';
+        setShowDemoOption(true);
       } else if (err.message) {
         localizedError = err.message;
       }
@@ -80,7 +84,10 @@ export default function Login({ onSuccess }: LoginProps) {
       if (onSuccess) onSuccess();
     } catch (err: any) {
       console.error(err);
-      if (err.code !== 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('El proveedor de Google Sign-In está deshabilitado en tu Firebase Console. Por favor, actívalo en Authentication -> Sign-in method o utiliza el botón de Modo Demo abajo.');
+        setShowDemoOption(true);
+      } else if (err.code !== 'auth/popup-closed-by-user') {
         setError('Error al iniciar sesión con Google.');
       }
     } finally {
@@ -115,6 +122,18 @@ export default function Login({ onSuccess }: LoginProps) {
             {isLogin 
               ? 'Panel de Gestión Operativa & Control de Caja' 
               : 'Regístrese para administrar la agenda de lavados'}
+          </p>
+        </div>
+
+        {/* Info box for new users */}
+        <div className="p-3 bg-brand-red/5 border border-brand-red/10 rounded-2xl text-left text-xs space-y-1">
+          <p className="text-gray-200 font-bold flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-brand-red shrink-0" />
+            ¿Es tu primera vez aquí?
+          </p>
+          <p className="text-gray-400 leading-normal text-[11px]">
+            Para ingresar por primera vez, selecciona la pestaña <span className="text-white font-semibold">"Registrarse"</span> abajo para crear tu usuario. 
+            Tu correo <span className="text-white font-semibold">romii.macariz@gmail.com</span> (o el primer usuario que se registre) se convertirá automáticamente en <span className="text-brand-red font-semibold">Administrador</span>.
           </p>
         </div>
 
@@ -327,6 +346,29 @@ export default function Login({ onSuccess }: LoginProps) {
           </svg>
           Google Login (Próximamente / Activo)
         </button>
+
+        {/* Demo Mode bypass option */}
+        <div className="pt-2 text-center border-t border-gray-800/50">
+          <button
+            type="button"
+            onClick={async () => {
+              setError(null);
+              setSuccessMsg(null);
+              if (loginAsDemo) {
+                await loginAsDemo();
+                setSuccessMsg('¡Ingresando en Modo Demo con éxito!');
+                if (onSuccess) onSuccess();
+              }
+            }}
+            className="w-full py-3 bg-[#1A1115] hover:bg-[#2A171F] border border-brand-red/30 hover:border-brand-red/50 text-brand-red font-black text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-inner"
+          >
+            <Sparkles className="w-4 h-4 text-brand-red shrink-0" />
+            <span>Entrar en Modo Demo / Desarrollador</span>
+          </button>
+          <p className="text-[10px] text-gray-500 mt-1.5 leading-normal">
+            Utiliza esta opción para probar y administrar la aplicación de inmediato sin necesidad de configurar proveedores de Firebase.
+          </p>
+        </div>
       </motion.div>
     </div>
   );
