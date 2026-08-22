@@ -69,10 +69,23 @@ import { getWhatsAppHref, getConfirmationMessage, getVehicleReadyMessage, getIna
 // Navigation Helpers to Centralize Routing and fix 404/Hash mismatch issues
 function getCurrentRoute(): string {
   const hash = window.location.hash;
-  if (hash && hash.startsWith('#/')) {
-    return hash.substring(1);
+  if (hash) {
+    const cleanHash = hash.replace(/^#\/?/, '');
+    if (cleanHash) return '/' + cleanHash;
   }
-  return window.location.pathname;
+  const search = window.location.search.toLowerCase();
+  if (search.includes('autoservicio')) return '/autoservicio';
+  const pathname = window.location.pathname;
+  if (pathname && pathname !== '/') return pathname;
+  return '/dashboard';
+}
+
+function checkIsAutoservicioRoute(route: string): boolean {
+  if (route && route.toLowerCase().includes('autoservicio')) return true;
+  const hash = window.location.hash.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const path = window.location.pathname.toLowerCase();
+  return hash.includes('autoservicio') || search.includes('autoservicio') || path.includes('autoservicio');
 }
 
 function getTabFromRoute(route: string): string {
@@ -87,7 +100,7 @@ function getTabFromRoute(route: string): string {
   if (cleanRoute === '/caja') return 'Caja';
   if (cleanRoute === '/reportes') return 'Reportes';
   if (cleanRoute === '/configuracion') return 'Configuración';
-  if (cleanRoute === '/autoservicio') return 'Autoservicio';
+  if (cleanRoute.includes('autoservicio')) return 'Autoservicio';
   return 'Inicio';
 }
 
@@ -775,7 +788,7 @@ export default function App() {
     { label: 'Autoservicio', icon: Smartphone }
   ];
 
-  const isPublicAutoservicio = currentPath === '/autoservicio' || window.location.hash === '#/autoservicio';
+  const isPublicAutoservicio = checkIsAutoservicioRoute(currentPath) || activeTab === 'Autoservicio';
 
   if (authLoading) {
     return <LoadingScreen />;
@@ -784,7 +797,12 @@ export default function App() {
   if (!user && !isPublicAutoservicio) {
     return (
       <div id="lavadero-ryn-app" className="min-h-screen bg-[#07070A] flex items-center justify-center p-4 relative overflow-hidden select-none">
-        <Login onSuccess={() => addToast('success', 'Bienvenido', 'Has ingresado correctamente al panel de Lavadero RyN.')} />
+        <Login 
+          onSuccess={() => addToast('success', 'Bienvenido', 'Has ingresado correctamente al panel de Lavadero RyN.')} 
+          onGoToAutoservicio={() => {
+            handleTabChange('Autoservicio');
+          }}
+        />
         <ToastContainer toasts={toasts} onRemove={removeToast} />
       </div>
     );
@@ -798,10 +816,17 @@ export default function App() {
           onAddBooking={handleAddBookingSelfService}
           onTriggerWhatsApp={handleTriggerWhatsApp}
           onExit={() => {
-            handleTabChange('Inicio');
-            setDbState(prev => ({ ...prev, currentRole: usuario?.rol || 'Empleado' }));
+            if (!user) {
+              // Return to login screen if unauthenticated
+              window.location.hash = '';
+              setCurrentPath('/dashboard');
+              setActiveTab('Inicio');
+            } else {
+              handleTabChange('Inicio');
+              setDbState(prev => ({ ...prev, currentRole: usuario?.rol || 'Empleado' }));
+            }
           }}
-          isPublicRoute={isPublicAutoservicio}
+          isPublicRoute={!user || isPublicAutoservicio}
         />
 
         <WhatsAppModal

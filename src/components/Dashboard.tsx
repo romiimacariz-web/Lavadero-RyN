@@ -33,7 +33,10 @@ import {
   RefreshCw,
   Zap,
   ArrowUpRight,
-  AlertCircle
+  AlertCircle,
+  Share2,
+  Check,
+  Link as LinkIcon
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -70,6 +73,7 @@ export default function Dashboard({
   const [globalSearch, setGlobalSearch] = useState('');
   const [activeChartTab, setActiveChartTab] = useState<'ventas' | 'servicios' | 'volumen' | 'clientes'>('ventas');
   const [showQuickGuide, setShowQuickGuide] = useState(true);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const currentMonthStr = useMemo(() => todayStr.substring(0, 7), [todayStr]);
@@ -357,6 +361,20 @@ export default function Dashboard({
           <p className="text-xs text-gray-400 font-medium font-sans">
             {state.horarios || 'Lunes a Sábado de 08:00 a 20:00'} &bull; {state.direccionNegocio || 'Av. San Martín 1500'}
           </p>
+          <div className="pt-1 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/#/autoservicio`;
+                navigator.clipboard.writeText(url);
+                setCopiedLink(true);
+                setTimeout(() => setCopiedLink(false), 2500);
+              }}
+              className="bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-emerald-400" />}
+              <span>{copiedLink ? '¡Link de Turnos Copiado!' : 'Copiar Link de Autoservicio para Clientes'}</span>
+            </button>
+          </div>
         </div>
  
         {/* Global search launcher bar */}
