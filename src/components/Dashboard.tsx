@@ -36,7 +36,8 @@ import {
   AlertCircle,
   Share2,
   Check,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ExternalLink
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -374,6 +375,17 @@ export default function Dashboard({
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-emerald-400" />}
               <span>{copiedLink ? '¡Link de Turnos Copiado!' : 'Copiar Link de Autoservicio para Clientes'}</span>
             </button>
+
+            <a
+              href={`${window.location.origin}/#/autoservicio`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#181822] hover:bg-white/[0.04] border border-white/[0.08] text-gray-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+              title="Abrir el portal de clientes en una pestaña nueva"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
+              <span>Probar Vista Cliente</span>
+            </a>
           </div>
         </div>
  

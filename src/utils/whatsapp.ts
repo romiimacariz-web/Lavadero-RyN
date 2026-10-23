@@ -8,10 +8,15 @@ export interface WhatsAppTemplateData {
   fecha?: string;
   hora?: string;
   vehiculoInfo?: string;
+  trackingUrl?: string;
 }
 
 export const getConfirmationMessage = (data: WhatsAppTemplateData): string => {
-  return `Hola ${data.nombre}, confirmamos tu reserva en Lavadero RyN para el día ${data.fecha || ''} a las ${data.hora || ''}.`;
+  let msg = `Hola ${data.nombre}, confirmamos tu reserva en Lavadero RyN para el día ${data.fecha || ''} a las ${data.hora || ''}.`;
+  if (data.trackingUrl) {
+    msg += `\n\nPodés consultar el estado de tu vehículo en tiempo real aquí:\n${data.trackingUrl}`;
+  }
+  return msg;
 };
 
 export const getVehicleReadyMessage = (data: WhatsAppTemplateData): string => {

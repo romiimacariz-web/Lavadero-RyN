@@ -24,7 +24,10 @@ import {
   Layers,
   Clock,
   History,
-  CheckCircle2
+  CheckCircle2,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { getWhatsAppHref, getInactiveGreetingMessage } from '../utils/whatsapp';
 
@@ -48,6 +51,7 @@ export default function Clients({
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [copiedLinkClient, setCopiedLinkClient] = useState(false);
 
   // Form states
   const [nombre, setNombre] = useState('');
@@ -507,16 +511,31 @@ export default function Clients({
                     <span className="font-mono text-white font-bold">{selectedCliente.telefono}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2.5">
-                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  <div className="flex flex-wrap items-center gap-2">
                     <a 
                       href={getWhatsAppHref(selectedCliente.whatsapp, `Hola ${selectedCliente.nombre}, te saludamos de Lavadero RyN.`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-emerald-400 font-bold text-xs flex items-center gap-1.5 bg-emerald-500/10 px-3.5 py-1.5 rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition cursor-pointer"
                     >
+                      <MessageSquare className="w-4 h-4" />
                       <span>Mandar WhatsApp</span>
                     </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/#/autoservicio?phone=${encodeURIComponent(selectedCliente.telefono)}&token=${encodeURIComponent(selectedCliente.id)}`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedLinkClient(true);
+                        setTimeout(() => setCopiedLinkClient(false), 2500);
+                      }}
+                      className="text-blue-300 hover:text-white font-bold text-xs flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 px-3.5 py-1.5 rounded-xl border border-blue-500/30 transition cursor-pointer"
+                      title="Copiar enlace individual para que el cliente consulte sus turnos y autos"
+                    >
+                      {copiedLinkClient ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
+                      <span>{copiedLinkClient ? '¡Link Copiado!' : 'Link Autoservicio Cliente'}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -524,6 +543,21 @@ export default function Clients({
                   <div className="flex items-center gap-2.5 text-gray-300">
                     <MapPin className="w-4 h-4 text-purple-400" />
                     <span className="text-gray-200">{selectedCliente.direccion || <span className="text-gray-500 italic">Sin dirección guardada</span>}</span>
+                  </div>
+
+                  <div>
+                    <a
+                      href={getWhatsAppHref(
+                        selectedCliente.whatsapp,
+                        `¡Hola ${selectedCliente.nombre}! Te enviamos tu enlace directo de Lavadero RyN para consultar tus turnos, autos y agendar nuevos lavados:\n${window.location.origin}/#/autoservicio?phone=${encodeURIComponent(selectedCliente.telefono)}&token=${encodeURIComponent(selectedCliente.id)}`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-gray-300 hover:text-emerald-400 flex items-center gap-1 underline transition cursor-pointer"
+                    >
+                      <Share2 className="w-3 h-3 text-emerald-400" />
+                      <span>Enviar enlace de autoservicio a este cliente por WhatsApp</span>
+                    </a>
                   </div>
                 </div>
               </div>

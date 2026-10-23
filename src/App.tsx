@@ -70,22 +70,42 @@ import { getWhatsAppHref, getConfirmationMessage, getVehicleReadyMessage, getIna
 function getCurrentRoute(): string {
   const hash = window.location.hash;
   if (hash) {
-    const cleanHash = hash.replace(/^#\/?/, '');
+    const cleanHash = hash.replace(/^#\/?/, '').split('?')[0];
     if (cleanHash) return '/' + cleanHash;
   }
   const search = window.location.search.toLowerCase();
-  if (search.includes('autoservicio')) return '/autoservicio';
-  const pathname = window.location.pathname;
+  if (
+    search.includes('autoservicio') || 
+    search.includes('token') || 
+    search.includes('phone') || 
+    search.includes('telefono') || 
+    search.includes('reserva') ||
+    search.includes('cliente')
+  ) {
+    return '/autoservicio';
+  }
+  const pathname = window.location.pathname.toLowerCase().split('?')[0];
   if (pathname && pathname !== '/') return pathname;
   return '/dashboard';
 }
 
 function checkIsAutoservicioRoute(route: string): boolean {
-  if (route && route.toLowerCase().includes('autoservicio')) return true;
-  const hash = window.location.hash.toLowerCase();
-  const search = window.location.search.toLowerCase();
-  const path = window.location.pathname.toLowerCase();
-  return hash.includes('autoservicio') || search.includes('autoservicio') || path.includes('autoservicio');
+  const r = (route || '').toLowerCase();
+  const hash = (window.location.hash || '').toLowerCase();
+  const search = (window.location.search || '').toLowerCase();
+  const path = (window.location.pathname || '').toLowerCase();
+  const href = (window.location.href || '').toLowerCase();
+
+  const isMatch = (str: string) =>
+    str.includes('autoservicio') ||
+    str.includes('cliente') ||
+    str.includes('turno') ||
+    str.includes('token=') ||
+    str.includes('phone=') ||
+    str.includes('telefono=') ||
+    str.includes('reserva=');
+
+  return isMatch(r) || isMatch(hash) || isMatch(search) || isMatch(path) || isMatch(href);
 }
 
 function getTabFromRoute(route: string): string {
@@ -790,7 +810,8 @@ export default function App() {
 
   const isPublicAutoservicio = checkIsAutoservicioRoute(currentPath) || activeTab === 'Autoservicio';
 
-  if (authLoading) {
+  // Do not block customers with auth loading screen when visiting the public autoservicio link
+  if (authLoading && !isPublicAutoservicio) {
     return <LoadingScreen />;
   }
 
@@ -817,9 +838,9 @@ export default function App() {
           onTriggerWhatsApp={handleTriggerWhatsApp}
           onExit={() => {
             if (!user) {
-              // Return to login screen if unauthenticated
-              window.location.hash = '';
-              setCurrentPath('/dashboard');
+              // Return to login screen for staff
+              window.location.hash = '#/login';
+              setCurrentPath('/login');
               setActiveTab('Inicio');
             } else {
               handleTabChange('Inicio');

@@ -27,7 +27,9 @@ import {
   Check,
   Edit,
   ArrowRightLeft,
-  Info
+  Info,
+  Share2,
+  Copy
 } from 'lucide-react';
 import { getWhatsAppHref, getConfirmationMessage } from '../utils/whatsapp';
 
@@ -63,6 +65,7 @@ export default function BookingCalendar({
   const [isAdding, setIsAdding] = useState(false);
   const [reservaToDelete, setReservaToDelete] = useState<string | null>(null);
   const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
+  const [copiedReservaLink, setCopiedReservaLink] = useState(false);
 
   // Form states
   const [clienteId, setClienteId] = useState('');
@@ -238,10 +241,12 @@ export default function BookingCalendar({
   const sendConfirmationWhatsApp = (res: Reserva) => {
     const client = getCliente(res.clienteId);
     if (!client) return;
+    const trackingUrl = `${window.location.origin}/#/autoservicio?reserva=${encodeURIComponent(res.id)}&phone=${encodeURIComponent(client.telefono)}`;
     const msg = getConfirmationMessage({
       nombre: client.nombre,
       fecha: res.fecha,
-      hora: res.hora
+      hora: res.hora,
+      trackingUrl
     });
     onTriggerWhatsApp(client.whatsapp, msg);
   };
@@ -752,15 +757,34 @@ export default function BookingCalendar({
               )}
             </div>
 
-            <div className="flex gap-2 border-t border-white/[0.05] pt-4">
+            <div className="flex flex-wrap gap-2 border-t border-white/[0.05] pt-4">
               <button
+                type="button"
                 onClick={() => sendConfirmationWhatsApp(selectedReserva)}
-                className="flex-1 bg-[#25D366] hover:bg-[#20ba59] text-black font-extrabold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition duration-150 cursor-pointer shadow-md"
+                className="flex-1 bg-[#25D366] hover:bg-[#20ba59] text-black font-extrabold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition duration-150 cursor-pointer shadow-md min-w-[140px]"
               >
                 <MessageSquare className="w-4 h-4" />
-                Mandar WhatsApp
+                <span>Mandar WhatsApp</span>
               </button>
+
               <button
+                type="button"
+                onClick={() => {
+                  const client = getCliente(selectedReserva.clienteId);
+                  const url = `${window.location.origin}/#/autoservicio?reserva=${encodeURIComponent(selectedReserva.id)}&phone=${encodeURIComponent(client?.telefono || '')}`;
+                  navigator.clipboard.writeText(url);
+                  setCopiedReservaLink(true);
+                  setTimeout(() => setCopiedReservaLink(false), 2500);
+                }}
+                className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
+                title="Copiar enlace de seguimiento del turno para el cliente"
+              >
+                {copiedReservaLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+                <span>{copiedReservaLink ? '¡Link Copiado!' : 'Copiar Link'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   setReservaToDelete(selectedReserva.id);
                   setSelectedReserva(null);
